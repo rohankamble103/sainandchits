@@ -46,7 +46,7 @@ function initHeaderScroll() {
   window.addEventListener('scroll', () => {
     const scrolled = window.scrollY > 10;
     headerEl.classList.toggle('scrolled', scrolled);
-    toTopBtn.classList.toggle('show', window.scrollY > 500);
+    toTopBtn?.classList.toggle('show', window.scrollY > 500);
   });
 
   toTopBtn?.addEventListener('click', () => {
@@ -278,8 +278,6 @@ function initCarousel() {
 }
 
 // ========== ENHANCED CONTACT FORM WITH VALIDATION ==========
-const GOOGLE_APPS_SCRIPT_URL = '';
-
 function initContactForm() {
   const form = document.getElementById('enquiryForm');
   const note = document.getElementById('formNote');
@@ -321,14 +319,7 @@ function initContactForm() {
 
     note.classList.remove('show');
 
-    if (!GOOGLE_APPS_SCRIPT_URL) {
-      note.textContent = 'Email service is not configured yet. Add the Google Apps Script Web App URL first.';
-      note.classList.add('show');
-      return;
-    }
-
     const enquiry = {
-      timestamp: new Date().toISOString(),
       name,
       phone,
       email,
@@ -336,20 +327,30 @@ function initContactForm() {
       message: message || 'No message provided',
     };
 
-    fetch(GOOGLE_APPS_SCRIPT_URL, {
+    const submitButton = form.querySelector('button[type="submit"]');
+    if (submitButton) submitButton.disabled = true;
+
+    fetch('/api/enquiries', {
       method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(enquiry),
     })
+      .then(async response => {
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Unable to send enquiry');
+        return result;
+      })
       .then(() => {
-        success.textContent = '✓ Enquiry sent successfully.';
+        success.textContent = '✓ Enquiry sent successfully. Our team will contact you soon.';
         success.classList.add('show');
         form.reset();
       })
-      .catch(() => {
-        note.textContent = 'Unable to send the enquiry. Please try again.';
+      .catch(error => {
+        note.textContent = error.message || 'Unable to send the enquiry. Please try again.';
         note.classList.add('show');
+      })
+      .finally(() => {
+        if (submitButton) submitButton.disabled = false;
       });
 
     setTimeout(() => {
@@ -415,8 +416,10 @@ function initPerformanceMonitoring() {
   if (window.performance && window.performance.timing) {
     window.addEventListener('load', () => {
       const timing = window.performance.timing;
-      const loadTime = timing.loadEventEnd - timing.navigationStart;
-      console.log(`Page loaded in ${loadTime}ms`);
+      const loadTime = timing.loadEventEnd > timing.navigationStart
+        ? timing.loadEventEnd - timing.navigationStart
+        : null;
+      if (loadTime !== null) console.log(`Page loaded in ${loadTime}ms`);
     });
   }
 }
