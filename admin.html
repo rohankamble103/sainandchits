@@ -45,6 +45,37 @@
       <section id="enquiriesPanel" class="admin-panel">
         <div class="panel-heading"><div><div class="admin-kicker">Visitor messages</div><h2>Enquiry inbox</h2></div><button id="refreshEnquiries" class="admin-button admin-button-light">Refresh</button></div>
         <p class="panel-intro">Review every visitor who sends the contact form. Use the three follow-up boxes to record contact attempts and the notes box for your team.</p>
+        <div class="enquiry-toolbar" aria-label="Filter enquiries">
+          <label class="search-field">Search people or enquiries
+            <input id="enquirySearch" type="search" placeholder="Name, phone, email, plan, or message">
+          </label>
+          <label>Status
+            <select id="enquiryStatusFilter">
+              <option value="all">All statuses</option>
+              <option value="new">New</option>
+              <option value="contacted">Contacted</option>
+              <option value="qualified">Qualified</option>
+              <option value="closed">Closed</option>
+            </select>
+          </label>
+          <label>Source
+            <select id="enquirySourceFilter">
+              <option value="all">All sources</option>
+              <option value="chat">Chat with Sai</option>
+              <option value="form">Contact form</option>
+            </select>
+          </label>
+          <label>Sort by
+            <select id="enquirySort">
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="name-asc">Name A–Z</option>
+              <option value="name-desc">Name Z–A</option>
+            </select>
+          </label>
+          <button id="resetEnquiryFilters" class="text-button" type="button">Clear filters</button>
+        </div>
+        <div id="enquiryResultsSummary" class="results-summary" aria-live="polite"></div>
         <div id="enquiriesList" class="enquiries-list"></div>
       </section>
 

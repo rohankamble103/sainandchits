@@ -1,4 +1,13 @@
-const state = { enquiries: [], posts: [] };
+const state = {
+  enquiries: [],
+  posts: [],
+  enquiryFilters: {
+    search: '',
+    status: 'all',
+    source: 'all',
+    sort: 'newest',
+  },
+};
 
 function escapeAdminHtml(value) {
   return String(value || '').replace(/[&<>"']/g, character => ({
@@ -71,12 +80,21 @@ function showDashboard() {
 
 function renderEnquiries() {
   const list = document.getElementById('enquiriesList');
-  document.getElementById('enquiryCount').textContent = state.enquiries.length;
-  if (!state.enquiries.length) {
-    list.innerHTML = '<div class="empty-state"><strong>No enquiries yet</strong><span>New contact form submissions will appear here.</span></div>';
+  const visibleEnquiries = getVisibleEnquiries();
+  document.getElementById('enquiryCount').textContent = visibleEnquiries.length;
+  const summary = document.getElementById('enquiryResultsSummary');
+  summary.textContent = state.enquiries.length === visibleEnquiries.length
+    ? `${state.enquiries.length} ${state.enquiries.length === 1 ? 'enquiry' : 'enquiries'}`
+    : `Showing ${visibleEnquiries.length} of ${state.enquiries.length} enquiries`;
+
+  if (!visibleEnquiries.length) {
+    const hasFilters = state.enquiries.length > 0;
+    list.innerHTML = hasFilters
+      ? '<div class="empty-state"><strong>No matching enquiries</strong><span>Try a different search or clear the filters.</span></div>'
+      : '<div class="empty-state"><strong>No enquiries yet</strong><span>New contact form submissions will appear here.</span></div>';
     return;
   }
-  list.innerHTML = state.enquiries.map(enquiry => `
+  list.innerHTML = visibleEnquiries.map(enquiry => `
     <article class="enquiry-card" data-enquiry-id="${enquiry.id}">
       <div class="enquiry-top">
         <div><h3>${escapeAdminHtml(enquiry.name)}</h3><p class="enquiry-meta">${formatDate(enquiry.createdAt)} · ${escapeAdminHtml(enquiry.plan || 'Plan not specified')} ${enquiry.chatTranscript?.length ? '· Chat with Sai' : ''}</p></div>
@@ -102,6 +120,66 @@ function renderEnquiries() {
       ${enquiry.historyCount > 1 ? '<div class="history-panel" hidden></div>' : ''}
     </article>
   `).join('');
+}
+
+function getVisibleEnquiries() {
+  const { search, status, source, sort } = state.enquiryFilters;
+  const query = search.trim().toLowerCase();
+  const filtered = state.enquiries.filter(enquiry => {
+    const searchable = [
+      enquiry.name,
+      enquiry.phone,
+      enquiry.email,
+      enquiry.plan,
+      enquiry.message,
+      enquiry.adminNotes,
+      enquiry.followUp1,
+      enquiry.followUp2,
+      enquiry.followUp3,
+    ].join(' ').toLowerCase();
+    const matchesSearch = !query || searchable.includes(query);
+    const matchesStatus = status === 'all' || enquiry.status === status;
+    const matchesSource = source === 'all'
+      || (source === 'chat' && enquiry.chatTranscript?.length)
+      || (source === 'form' && !enquiry.chatTranscript?.length);
+    return matchesSearch && matchesStatus && matchesSource;
+  });
+
+  return filtered.sort((left, right) => {
+    if (sort === 'oldest') return new Date(left.createdAt) - new Date(right.createdAt);
+    if (sort === 'name-asc') return left.name.localeCompare(right.name, 'en');
+    if (sort === 'name-desc') return right.name.localeCompare(left.name, 'en');
+    return new Date(right.createdAt) - new Date(left.createdAt);
+  });
+}
+
+function resetEnquiryFilters() {
+  state.enquiryFilters = { search: '', status: 'all', source: 'all', sort: 'newest' };
+  document.getElementById('enquirySearch').value = '';
+  document.getElementById('enquiryStatusFilter').value = 'all';
+  document.getElementById('enquirySourceFilter').value = 'all';
+  document.getElementById('enquirySort').value = 'newest';
+  renderEnquiries();
+}
+
+function bindEnquiryFilters() {
+  document.getElementById('enquirySearch').addEventListener('input', event => {
+    state.enquiryFilters.search = event.target.value;
+    renderEnquiries();
+  });
+  document.getElementById('enquiryStatusFilter').addEventListener('change', event => {
+    state.enquiryFilters.status = event.target.value;
+    renderEnquiries();
+  });
+  document.getElementById('enquirySourceFilter').addEventListener('change', event => {
+    state.enquiryFilters.source = event.target.value;
+    renderEnquiries();
+  });
+  document.getElementById('enquirySort').addEventListener('change', event => {
+    state.enquiryFilters.sort = event.target.value;
+    renderEnquiries();
+  });
+  document.getElementById('resetEnquiryFilters').addEventListener('click', resetEnquiryFilters);
 }
 
 function renderPosts() {
@@ -293,6 +371,8 @@ document.getElementById('postsList').addEventListener('click', async event => {
     } catch (error) { showAlert(error.message, 'error'); }
   }
 });
+
+bindEnquiryFilters();
 
 async function boot() {
   const session = await fetch('/api/admin/session').then(response => response.json());

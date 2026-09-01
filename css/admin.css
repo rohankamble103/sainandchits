@@ -50,6 +50,11 @@ input:focus, textarea:focus, select:focus { border-color: var(--red); box-shadow
 .admin-panel { padding: 30px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,.82); box-shadow: 0 12px 34px rgba(38, 32, 31, .05); }
 .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
 .panel-intro { max-width: 740px; margin: 10px 0 26px; font-size: 14px; }
+.enquiry-toolbar { display: grid; grid-template-columns: minmax(220px, 2fr) repeat(3, minmax(130px, 1fr)) auto; align-items: end; gap: 12px; margin: 22px 0 10px; padding: 16px; border: 1px solid rgba(180,24,28,.14); border-radius: 10px; background: var(--paper-2); }
+.enquiry-toolbar label { min-width: 0; font-size: 12px; }
+.enquiry-toolbar input, .enquiry-toolbar select { padding: 9px 10px; font-size: 12px; }
+.enquiry-toolbar .text-button { white-space: nowrap; }
+.results-summary { min-height: 18px; margin: 0 2px 14px; color: var(--ink-soft); font-size: 12px; }
 .enquiries-list, .posts-list { display: grid; gap: 18px; }
 .enquiry-card { padding: 22px; border: 1px solid var(--line); border-left: 4px solid var(--red); border-radius: 12px; background: #fff; }
 .enquiry-top { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
@@ -101,6 +106,8 @@ input:focus, textarea:focus, select:focus { border-color: var(--red); box-shadow
   .admin-shell { width: min(100% - 20px, 680px); padding-top: 18px; }
   .login-card, .admin-panel { padding: 22px; }
   .admin-header, .panel-heading, .enquiry-top { align-items: start; flex-direction: column; }
+  .enquiry-toolbar { grid-template-columns: 1fr; align-items: stretch; }
+  .enquiry-toolbar .text-button { justify-self: start; }
   .follow-up-grid, .form-grid { grid-template-columns: 1fr; }
   .upload-row { align-items: stretch; flex-direction: column; }
   .upload-row span { padding: 0; }
