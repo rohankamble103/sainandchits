@@ -253,7 +253,13 @@ Business details:
     const result = await openAiResponse.json();
     if (!openAiResponse.ok) {
       console.error('OpenAI error:', result);
-      if (result.error?.code === 'insufficient_quota' || result.error?.code === 'credit_balance_exhausted') {
+      if (
+        openAiResponse.status === 401 ||
+        result.error?.code === 'insufficient_quota' ||
+        result.error?.code === 'credit_balance_exhausted' ||
+        result.error?.code === 'token_invalidated' ||
+        result.error?.code === 'invalid_api_key'
+      ) {
         return response.json({ answer: fallbackChatAnswer(messages), fallback: true });
       }
       return response.status(502).json({ error: 'The chat service is temporarily unavailable.' });
