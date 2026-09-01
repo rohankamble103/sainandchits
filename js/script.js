@@ -279,37 +279,21 @@ function initCardTilt() {
   });
 }
 
-// ========== AUTO-SCROLLING CAROUSEL WITH ENHANCED CONTROLS ==========
+// ========== AUTO-SCROLLING CAROUSEL WITH TOUCH AND CLICK NAVIGATION ==========
 function initCarousel() {
   const track = document.getElementById('carouselTrack');
-  const dotsWrap = document.getElementById('carouselDots');
+  const carousel = document.getElementById('home');
   const slides = document.querySelectorAll('.slide');
   let index = 0;
   let autoTimer;
   let isPaused = false;
-
-  // Create dot buttons
-  slides.forEach((s, i) => {
-    const dot = document.createElement('button');
-    if (i === 0) dot.className = 'active';
-    dot.setAttribute('aria-label', `Go to slide ${i + 1}`);
-    dot.addEventListener('click', () => {
-      goToSlide(i);
-      resetAuto();
-    });
-    dotsWrap.appendChild(dot);
-  });
-
-  function updateDots() {
-    [...dotsWrap.children].forEach((d, i) => {
-      d.classList.toggle('active', i === index);
-    });
-  }
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let didSwipe = false;
 
   function goToSlide(i) {
     index = (i + slides.length) % slides.length;
     track.style.transform = `translateX(-${index * 100}%)`;
-    updateDots();
   }
 
   function moveSlide(dir) {
@@ -335,7 +319,49 @@ function initCarousel() {
     resetAuto();
   });
 
-  // Global slide controls
+  // Desktop and laptop navigation: click the side of the banner.
+  carousel.addEventListener('click', event => {
+    if (didSwipe) {
+      didSwipe = false;
+      return;
+    }
+
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+
+    const bounds = carousel.getBoundingClientRect();
+    moveSlide(event.clientX < bounds.left + bounds.width / 2 ? -1 : 1);
+  });
+
+  carousel.addEventListener('keydown', event => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    event.preventDefault();
+    moveSlide(event.key === 'ArrowLeft' ? -1 : 1);
+  });
+
+  // Touch navigation: keep vertical page scrolling natural and only
+  // intercept a deliberate horizontal swipe.
+  carousel.addEventListener('touchstart', event => {
+    const touch = event.changedTouches[0];
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+    didSwipe = false;
+    clearInterval(autoTimer);
+  }, { passive: true });
+
+  carousel.addEventListener('touchend', event => {
+    const touch = event.changedTouches[0];
+    const deltaX = touch.clientX - touchStartX;
+    const deltaY = touch.clientY - touchStartY;
+
+    if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY)) {
+      didSwipe = true;
+      moveSlide(deltaX < 0 ? 1 : -1);
+    } else {
+      resetAuto();
+    }
+  }, { passive: true });
+
+  // Keep the existing global hook available for keyboard/dev-console use.
   window.moveSlide = moveSlide;
 
   resetAuto();

@@ -399,6 +399,8 @@ nav a.active {
   display: block;
   margin: 0;
   transform: translate3d(0, 0, 0) !important;
+  touch-action: pan-y;
+  cursor: ew-resize;
 }
 
 .carousel-track {
@@ -519,67 +521,9 @@ nav a.active {
   max-width: 640px;
 }
 
-.carousel-arrow {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  background: rgba(255, 255, 255, 0.9);
-  border: none;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  font-size: 20px;
-  cursor: pointer;
-  color: var(--ink);
-  z-index: 5;
-  transition: all var(--transition-normal);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.carousel-arrow:hover {
-  background: #fff;
-  transform: translateY(-50%) scale(1.1);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-}
-
-.carousel-arrow.prev {
-  left: 16px;
-}
-
-.carousel-arrow.next {
-  right: 16px;
-}
-
+.carousel-arrow,
 .carousel-dots {
-  position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 10px;
-  z-index: 5;
-}
-
-.carousel-dots button {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.5);
-  background: transparent;
-  cursor: pointer;
-  padding: 0;
-  transition: all var(--transition-fast);
-}
-
-.carousel-dots button:hover {
-  background: rgba(255, 255, 255, 0.7);
-  transform: scale(1.2);
-}
-
-.carousel-dots button.active {
-  background: #fff;
-  border-color: #fff;
-  transform: scale(1.3);
+  display: none !important;
 }
 
 .carousel-note {
@@ -2341,10 +2285,10 @@ footer {
   }
 
   .bot-popup {
-    width: min(320px, calc(100vw - 24px));
+    width: min(300px, calc(100vw - 24px));
     min-width: 0;
     max-width: none;
-    max-height: min(78vh, 560px);
+    max-height: min(74vh, 520px);
     overflow: hidden;
     padding: 16px 12px 12px;
     bottom: 78px;
@@ -2420,9 +2364,9 @@ footer {
   }
 
   .bot-popup {
-    width: min(300px, calc(100vw - 20px));
-    max-height: min(76vh, 520px);
-    bottom: 68px;
+    width: min(280px, calc(100vw - 24px));
+    max-height: min(72vh, 500px);
+    bottom: 66px;
   }
 
   .bot-messages {
@@ -2481,8 +2425,8 @@ footer {
   }
 
   .bot-popup {
-    width: calc(100vw - 16px);
-    right: -4px;
+    width: min(270px, calc(100vw - 20px));
+    right: 0;
   }
 }
 
