@@ -391,7 +391,7 @@ nav a.active {
 .carousel {
   position: relative;
   width: 100%;
-  aspect-ratio: 1600 / 660;
+  aspect-ratio: 1264 / 522;
   overflow: hidden;
   background: linear-gradient(135deg, #0f0b0a, #1a1515);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
@@ -420,6 +420,7 @@ nav a.active {
   object-fit: cover;
   object-position: center;
   display: block;
+  backface-visibility: hidden;
   transition: transform 0.8s ease;
 }
 
@@ -2147,10 +2148,6 @@ footer {
     display: block;
   }
 
-  .carousel {
-    aspect-ratio: 1200 / 600;
-  }
-
   .hero-banner-copy {
     margin-top: 12px;
     padding: 22px 18px 18px;
@@ -2201,10 +2198,6 @@ footer {
   .logo-img {
     height: 48px;
     width: auto;
-  }
-
-  .carousel {
-    aspect-ratio: 1;
   }
 
   .slide-caption {
@@ -2348,13 +2341,23 @@ footer {
   }
 
   .bot-popup {
-    min-width: 200px;
-    max-width: 280px;
-    bottom: 80px;
+    width: min(320px, calc(100vw - 24px));
+    min-width: 0;
+    max-width: none;
+    max-height: min(78vh, 560px);
+    overflow: hidden;
+    padding: 16px 12px 12px;
+    bottom: 78px;
+    border-width: 1.5px;
+  }
+
+  .bot-messages {
+    max-height: min(34vh, 190px);
+    padding: 12px 1px 7px;
   }
 
   .bot-popup-content p {
-    font-size: 13px;
+    font-size: 10px;
   }
 
   .to-top {
@@ -2366,8 +2369,8 @@ footer {
   }
 
   .bot-widget {
-    right: 16px;
-    bottom: 16px;
+    right: 12px;
+    bottom: 12px;
   }
 }
 
@@ -2404,6 +2407,26 @@ footer {
 
   .logo-img {
     height: 44px;
+  }
+
+  .bot-avatar {
+    width: 54px;
+    height: 54px;
+  }
+
+  .bot-avatar img {
+    width: 54px;
+    height: 54px;
+  }
+
+  .bot-popup {
+    width: min(300px, calc(100vw - 20px));
+    max-height: min(76vh, 520px);
+    bottom: 68px;
+  }
+
+  .bot-messages {
+    max-height: min(32vh, 170px);
   }
 
   header {
@@ -2455,6 +2478,22 @@ footer {
     white-space: nowrap;
     min-width: 0;
     padding: 2px 5px;
+  }
+
+  .bot-popup {
+    width: calc(100vw - 16px);
+    right: -4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
