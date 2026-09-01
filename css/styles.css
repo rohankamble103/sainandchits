@@ -1677,6 +1677,33 @@ footer {
 }
 
 /* ========== BOT POPUP MODAL ========== */
+.bot-greeting {
+  position: absolute;
+  right: 0;
+  bottom: 90px;
+  z-index: 65;
+  padding: 9px 13px;
+  border: 1px solid rgba(180, 24, 28, 0.22);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(8px);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+}
+
+.bot-greeting.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
 .bot-popup {
   position: absolute;
   bottom: 90px;
@@ -2295,6 +2322,12 @@ footer {
     border-width: 1.5px;
   }
 
+  .bot-greeting {
+    bottom: 78px;
+    padding: 8px 11px;
+    font-size: 11px;
+  }
+
   .bot-messages {
     max-height: min(34vh, 190px);
     padding: 12px 1px 7px;
@@ -2369,6 +2402,12 @@ footer {
     bottom: 66px;
   }
 
+  .bot-greeting {
+    bottom: 66px;
+    padding: 7px 10px;
+    font-size: 10px;
+  }
+
   .bot-messages {
     max-height: min(32vh, 170px);
   }
@@ -2427,6 +2466,12 @@ footer {
   .bot-popup {
     width: min(270px, calc(100vw - 20px));
     right: 0;
+  }
+
+  .bot-greeting {
+    bottom: 66px;
+    right: 0;
+    font-size: 10px;
   }
 }
 

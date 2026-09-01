@@ -93,21 +93,27 @@ function initTopBarContacts() {
 // ========== BOT POPUP WIDGET ==========
 function initBotPopup() {
   const botAvatar = document.getElementById('botAvatar');
+  const botGreeting = document.getElementById('botGreeting');
   const botPopup = document.getElementById('botPopup');
   const botClose = document.getElementById('botClose');
   const chatForm = document.getElementById('botChatForm');
   const chatInput = document.getElementById('botInput');
   const messagesEl = document.getElementById('botMessages');
   const messages = [{ role: 'assistant', content: '👋 Hi, I am Sai. How can I help you today?' }];
-  let popupShownFromLoad = false;
+  let popupOpenedByUser = false;
+  let greetingTimer;
+  let autoCloseTimer;
 
   if (!botAvatar || !botPopup) return;
 
   // Toggle popup on avatar click
   botAvatar.addEventListener('click', (e) => {
     e.preventDefault();
+    clearTimeout(greetingTimer);
+    clearTimeout(autoCloseTimer);
+    botGreeting?.classList.remove('show');
     botPopup.classList.toggle('show');
-    popupShownFromLoad = true;
+    popupOpenedByUser = true;
     if (botPopup.classList.contains('show')) chatInput?.focus();
   });
 
@@ -115,11 +121,12 @@ function initBotPopup() {
   botClose?.addEventListener('click', (e) => {
     e.preventDefault();
     botPopup.classList.remove('show');
+    clearTimeout(autoCloseTimer);
   });
 
   // Close popup when clicking outside (but not from user-triggered open)
   document.addEventListener('click', (e) => {
-    if (!e.target.closest('.bot-widget') && popupShownFromLoad) {
+    if (!e.target.closest('.bot-widget') && popupOpenedByUser) {
       botPopup.classList.remove('show');
     }
   });
@@ -228,9 +235,18 @@ function initBotPopup() {
     form.querySelector('input')?.focus();
   }
 
-  // Auto-show popup on page load - show immediately and keep visible
+  // Give visitors a short welcome without forcing the full chat panel open.
   setTimeout(() => {
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+
+    if (isMobile) {
+      botGreeting?.classList.add('show');
+      greetingTimer = setTimeout(() => botGreeting?.classList.remove('show'), 2000);
+      return;
+    }
+
     botPopup.classList.add('show');
+    autoCloseTimer = setTimeout(() => botPopup.classList.remove('show'), 3000);
   }, 2500);
 }
 
