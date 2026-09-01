@@ -136,6 +136,20 @@ function adminEnquiry(row) {
   };
 }
 
+function fallbackChatAnswer(messages) {
+  const question = text(messages[messages.length - 1]?.content, 2000).toLowerCase();
+  if (/plan|lakh|scheme|bhisi|monthly|installment|instalment/.test(question)) {
+    return 'We currently show ₹5 Lakh, ₹10 Lakh, ₹15 Lakh, and ₹20 Lakh Bhisi plans. Please contact our team for current availability, exact instalments, eligibility, and documents.';
+  }
+  if (/contact|phone|call|email|office|address|location|nagpur/.test(question)) {
+    return 'You can reach Sainand Chits India at +91 98765 43210 or info@sainandchitfund.com. Our office is in Nagpur, Maharashtra.';
+  }
+  if (/bid|boli|auction|discount|dividend|how.*work/.test(question)) {
+    return 'Each member pays the fixed instalment into a shared pool. Members who need the payout bid openly, and the winning discount is shared with the remaining members. Confirm exact rules with our team.';
+  }
+  return 'I can share general information about our Bhisi plans and bidding process. For exact eligibility, fees, documents, availability, or account-specific help, please call +91 98765 43210 or email info@sainandchitfund.com.';
+}
+
 const upload = multer({
   storage: multer.diskStorage({
     destination: uploadsDir,
@@ -239,6 +253,9 @@ Business details:
     const result = await openAiResponse.json();
     if (!openAiResponse.ok) {
       console.error('OpenAI error:', result);
+      if (result.error?.code === 'insufficient_quota' || result.error?.code === 'credit_balance_exhausted') {
+        return response.json({ answer: fallbackChatAnswer(messages), fallback: true });
+      }
       return response.status(502).json({ error: 'The chat service is temporarily unavailable.' });
     }
     const answer = result.choices?.[0]?.message?.content?.trim();
