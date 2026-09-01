@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin | Sainand Chits India</title>
+  <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23B4181C' width='100' height='100'/><text x='50' y='65' font-size='60' font-weight='bold' fill='white' text-anchor='middle' font-family='serif'>S</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700;900&amp;family=Work+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <main class="admin-shell">
+    <section id="loginView" class="login-card">
+      <a class="admin-back" href="/">← Back to website</a>
+      <img src="/images/logo.png" alt="Sainand Chits India" class="admin-logo">
+      <div class="admin-kicker">Secure workspace</div>
+      <h1>Admin sign in</h1>
+      <p>Manage enquiries and publish News / Blog updates from one place.</p>
+      <form id="loginForm">
+        <label>Username<input id="adminUsername" name="username" autocomplete="username" value="admin" required></label>
+        <label>Password<input id="adminPassword" name="password" type="password" autocomplete="current-password" required></label>
+        <div id="loginError" class="admin-alert is-error" hidden></div>
+        <button class="admin-button" type="submit">Sign in</button>
+      </form>
+      <p class="admin-hint">The administrator password is kept in Replit Secrets and is never stored in this page.</p>
+    </section>
+
+    <section id="dashboardView" hidden>
+      <header class="admin-header">
+        <div>
+          <a href="/" class="admin-back">← View website</a>
+          <div class="admin-kicker">Sainand Chits India</div>
+          <h1>Admin workspace</h1>
+        </div>
+        <button id="logoutButton" class="admin-button admin-button-light">Sign out</button>
+      </header>
+      <div id="dashboardAlert" class="admin-alert" hidden></div>
+      <div class="admin-tabs" role="tablist">
+        <button class="admin-tab active" data-tab="enquiries" role="tab">Enquiries <span id="enquiryCount" class="tab-count">0</span></button>
+        <button class="admin-tab" data-tab="content" role="tab">News / Blog</button>
+        <button class="admin-tab" data-tab="site-content" role="tab">Site Pages</button>
+      </div>
+
+      <section id="enquiriesPanel" class="admin-panel">
+        <div class="panel-heading"><div><div class="admin-kicker">Visitor messages</div><h2>Enquiry inbox</h2></div><button id="refreshEnquiries" class="admin-button admin-button-light">Refresh</button></div>
+        <p class="panel-intro">Review every visitor who sends the contact form. Use the three follow-up boxes to record contact attempts and the notes box for your team.</p>
+        <div class="enquiry-toolbar" aria-label="Filter enquiries">
+          <label class="search-field">Search people or enquiries
+            <input id="enquirySearch" type="search" placeholder="Name, phone, email, plan, or message">
+          </label>
+          <label>Status
+            <select id="enquiryStatusFilter">
+              <option value="all">All statuses</option>
+              <option value="new">New</option>
+              <option value="contacted">Contacted</option>
+              <option value="qualified">Qualified</option>
+              <option value="closed">Closed</option>
+            </select>
+          </label>
+          <label>Source
+            <select id="enquirySourceFilter">
+              <option value="all">All sources</option>
+              <option value="chat">Chat with Sai</option>
+              <option value="form">Contact form</option>
+            </select>
+          </label>
+          <label>Sort by
+            <select id="enquirySort">
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="name-asc">Name A–Z</option>
+              <option value="name-desc">Name Z–A</option>
+            </select>
+          </label>
+          <button id="resetEnquiryFilters" class="text-button" type="button">Clear filters</button>
+        </div>
+        <div id="enquiryResultsSummary" class="results-summary" aria-live="polite"></div>
+        <div id="enquiriesList" class="enquiries-list"></div>
+      </section>
+
+      <section id="contentPanel" class="admin-panel" hidden>
+        <div class="panel-heading"><div><div class="admin-kicker">Public publishing</div><h2>News / Blog content</h2></div><button id="newPostButton" class="admin-button">Add post</button></div>
+        <p class="panel-intro">Add YouTube and Instagram links, or publish an article with a photo or video link. Posts appear in three rows on the public News / Blog page.</p>
+        <form id="postForm" class="post-form" hidden>
+          <input type="hidden" id="postId">
+          <div class="form-grid">
+            <label>Content type<select id="postCategory" required><option value="youtube">YouTube video</option><option value="instagram">Instagram video</option><option value="news">News / article</option></select></label>
+            <label>Title<input id="postTitle" maxlength="180" required placeholder="Enter a clear title"></label>
+          </div>
+          <label>Description<textarea id="postDescription" maxlength="4000" rows="4" placeholder="Write a short description..."></textarea></label>
+          <div class="form-grid">
+            <label>Video or post link<input id="postMediaUrl" type="url" placeholder="https://www.youtube.com/... or https://www.instagram.com/..."></label>
+            <label>Photo link (optional)<input id="postImageUrl" type="url" placeholder="https://..."></label>
+          </div>
+          <div class="upload-row"><label>Or upload a photo<input id="postImageFile" type="file" accept="image/*"></label><button id="uploadImageButton" type="button" class="admin-button admin-button-light">Upload photo</button><span id="uploadStatus"></span></div>
+          <label class="checkbox-label"><input id="postPublished" type="checkbox" checked> Publish on the public page</label>
+          <div class="form-actions"><button type="submit" class="admin-button">Save post</button><button id="cancelPostButton" type="button" class="admin-button admin-button-light">Cancel</button></div>
+        </form>
+        <div id="postsList" class="posts-list"></div>
+      </section>
+
+      <section id="siteContentPanel" class="admin-panel" hidden>
+        <div class="panel-heading"><div><div class="admin-kicker">Website publishing</div><h2>Site pages &amp; certificates</h2></div><button id="refreshSiteContent" class="admin-button admin-button-light" type="button">Refresh</button></div>
+        <p class="panel-intro">Edit the public information pages, manage FAQ and support pointers, and publish authorized certificates. Changes appear on the public website after saving.</p>
+
+        <div class="site-content-tabs" role="tablist" aria-label="Site content sections">
+          <button class="site-content-tab active" type="button" data-site-section="pages">Page text</button>
+          <button class="site-content-tab" type="button" data-site-section="faq">FAQ</button>
+          <button class="site-content-tab" type="button" data-site-section="support">Support Center</button>
+          <button class="site-content-tab" type="button" data-site-section="certificates">Certificates</button>
+        </div>
+
+        <section id="sitePagesEditor" class="site-editor-section">
+          <div class="admin-kicker">Page text</div>
+          <h3>Privacy, terms, contact and support pages</h3>
+          <form id="sitePageForm" class="site-editor-form">
+            <label class="page-selector-field">Page to edit
+              <input type="hidden" id="sitePageSlug" value="contact-us">
+              <div class="site-page-picker" id="sitePagePicker">
+                <button type="button" class="site-page-picker-button" id="sitePagePickerButton" aria-haspopup="listbox" aria-expanded="false">
+                  <span id="sitePagePickerLabel">Contact Us</span><span class="site-page-picker-chevron" aria-hidden="true">⌄</span>
+                </button>
+                <div class="site-page-picker-menu" id="sitePagePickerMenu" role="listbox" hidden>
+                  <button type="button" class="site-page-picker-option active" role="option" aria-selected="true" data-value="contact-us">Contact Us</button>
+                  <button type="button" class="site-page-picker-option" role="option" aria-selected="false" data-value="faq">FAQ</button>
+                  <button type="button" class="site-page-picker-option" role="option" aria-selected="false" data-value="support-center">Support Center</button>
+                  <button type="button" class="site-page-picker-option" role="option" aria-selected="false" data-value="authorized-certificates">Authorized Certificates</button>
+                  <button type="button" class="site-page-picker-option" role="option" aria-selected="false" data-value="privacy-policy">Privacy Policy</button>
+                  <button type="button" class="site-page-picker-option" role="option" aria-selected="false" data-value="terms-and-conditions">Terms &amp; Conditions</button>
+                </div>
+              </div>
+            </label>
+            <label>Page title<input id="sitePageTitle" maxlength="180" required></label>
+            <label>Short introduction<input id="sitePageIntro" maxlength="500" required></label>
+            <label>Page content<textarea id="sitePageBody" maxlength="12000" rows="9" placeholder="Write the page content. Use a blank line between paragraphs."></textarea></label>
+            <div class="form-actions"><button class="admin-button" type="submit">Save page</button></div>
+          </form>
+        </section>
+
+        <section id="siteFaqEditor" class="site-editor-section" hidden>
+          <div class="admin-kicker">FAQ content</div>
+          <h3>Add or update frequently asked questions</h3>
+          <form id="faqForm" class="site-editor-form" hidden>
+            <input type="hidden" id="faqId">
+            <label>Question<input id="faqQuestion" maxlength="240" required placeholder="What is a Bhisi?"></label>
+            <label>Answer<textarea id="faqAnswer" maxlength="4000" rows="5" required placeholder="Write a clear answer..."></textarea></label>
+            <div class="form-grid site-small-grid">
+              <label>Display order<input id="faqSortOrder" type="number" min="0" step="1" value="0"></label>
+              <label class="checkbox-label"><input id="faqPublished" type="checkbox" checked> Publish this FAQ</label>
+            </div>
+            <div class="form-actions"><button class="admin-button" type="submit">Save FAQ</button><button id="cancelFaqButton" class="admin-button admin-button-light" type="button">Cancel</button></div>
+          </form>
+          <button id="newFaqButton" class="admin-button admin-button-light" type="button">Add FAQ</button>
+          <div id="faqAdminList" class="site-admin-list"></div>
+        </section>
+
+        <section id="siteSupportEditor" class="site-editor-section" hidden>
+          <div class="admin-kicker">Support Center</div>
+          <h3>Add or update support pointers</h3>
+          <form id="supportForm" class="site-editor-form" hidden>
+            <input type="hidden" id="supportId">
+            <label>Title<input id="supportTitle" maxlength="180" required placeholder="Plan and eligibility help"></label>
+            <label>Description<textarea id="supportDescription" maxlength="4000" rows="4" required placeholder="Tell visitors what this support option covers..."></textarea></label>
+            <div class="form-grid site-small-grid">
+              <label>Link (optional)<input id="supportLinkUrl" type="text" maxlength="1000" placeholder="/#contact or tel:+919876543210"></label>
+              <label>Display order<input id="supportSortOrder" type="number" min="0" step="1" value="0"></label>
+            </div>
+            <label class="checkbox-label"><input id="supportPublished" type="checkbox" checked> Publish this support option</label>
+            <div class="form-actions"><button class="admin-button" type="submit">Save support item</button><button id="cancelSupportButton" class="admin-button admin-button-light" type="button">Cancel</button></div>
+          </form>
+          <button id="newSupportButton" class="admin-button admin-button-light" type="button">Add support item</button>
+          <div id="supportAdminList" class="site-admin-list"></div>
+        </section>
+
+        <section id="siteCertificatesEditor" class="site-editor-section" hidden>
+          <div class="admin-kicker">Authorized Certificates</div>
+          <h3>Upload and publish company documents</h3>
+          <p class="panel-intro">Upload an image or PDF up to 10 MB, then add its title and description. Uncheck publish when a document should stay private.</p>
+          <form id="certificateForm" class="site-editor-form" hidden>
+            <input type="hidden" id="certificateId">
+            <input type="hidden" id="certificateFileUrl">
+            <input type="hidden" id="certificateFileName">
+            <label>Certificate title<input id="certificateTitle" maxlength="180" required placeholder="Certificate of registration"></label>
+            <label>Description<textarea id="certificateDescription" maxlength="4000" rows="4" required placeholder="Explain what this document confirms..."></textarea></label>
+            <div class="form-grid site-small-grid">
+              <label>Display order<input id="certificateSortOrder" type="number" min="0" step="1" value="0"></label>
+              <label class="checkbox-label"><input id="certificatePublished" type="checkbox" checked> Publish this certificate</label>
+            </div>
+            <div class="upload-row certificate-upload-row">
+              <label>Upload image or PDF<input id="certificateFile" type="file" accept="image/*,.pdf,application/pdf"></label>
+              <button id="uploadCertificateButton" type="button" class="admin-button admin-button-light">Upload file</button>
+              <span id="certificateUploadStatus"></span>
+            </div>
+            <div id="certificateCurrentFile" class="current-file"></div>
+            <div class="form-actions"><button class="admin-button" type="submit">Save certificate</button><button id="cancelCertificateButton" class="admin-button admin-button-light" type="button">Cancel</button></div>
+          </form>
+          <button id="newCertificateButton" class="admin-button admin-button-light" type="button">Add certificate</button>
+          <div id="certificateAdminList" class="site-admin-list"></div>
+        </section>
+      </section>
+    </section>
+  </main>
+  <script src="/js/admin.js"></script>
+</body>
+</html>
