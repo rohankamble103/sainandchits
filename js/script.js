@@ -98,7 +98,7 @@ function initBotPopup() {
   const chatForm = document.getElementById('botChatForm');
   const chatInput = document.getElementById('botInput');
   const messagesEl = document.getElementById('botMessages');
-  const messages = [];
+  const messages = [{ role: 'assistant', content: '👋 Hi, I am Sai. How can I help you today?' }];
   let popupShownFromLoad = false;
 
   if (!botAvatar || !botPopup) return;
@@ -146,6 +146,7 @@ function initBotPopup() {
 
       loadingMessage.textContent = result.answer;
       messages.push({ role: 'assistant', content: result.answer });
+      if (result.showEnquiryForm) showChatEnquiryForm();
     } catch (error) {
       loadingMessage.textContent = 'Sorry, I could not connect right now. Please call +91 98765 43210.';
     } finally {
@@ -162,6 +163,69 @@ function initBotPopup() {
     messagesEl.appendChild(message);
     messagesEl.scrollTop = messagesEl.scrollHeight;
     return message;
+  }
+
+  function showChatEnquiryForm() {
+    if (messagesEl.querySelector('.bot-enquiry-form')) return;
+
+    const form = document.createElement('form');
+    form.className = 'bot-enquiry-form';
+    form.innerHTML = `
+      <strong>Want more information?</strong>
+      <span>Share your details and our team will contact you.</span>
+      <label>Name<input name="name" type="text" maxlength="120" placeholder="Your full name" required></label>
+      <label>Email<input name="email" type="email" maxlength="254" placeholder="your.email@example.com" required></label>
+      <label>Phone number<input name="phone" type="tel" maxlength="40" placeholder="98765 43210" required></label>
+      <label>Interested plan
+        <select name="plan" required>
+          <option value="">Select a Bhisi plan</option>
+          <option>₹5 Lakh Bhisi (20 members, ₹25,000/mo)</option>
+          <option>₹10 Lakh Bhisi (25 members, ₹40,000/mo) - Most Popular</option>
+          <option>₹15 Lakh Bhisi (30 members, ₹50,000/mo)</option>
+          <option>₹20 Lakh Bhisi (36 members, ₹55,500/mo)</option>
+          <option>Not sure yet - Need more information</option>
+        </select>
+      </label>
+      <button type="submit">Request a callback</button>
+      <div class="bot-enquiry-status" role="status" aria-live="polite"></div>
+    `;
+
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const submitButton = form.querySelector('button');
+      const status = form.querySelector('.bot-enquiry-status');
+      const formData = new FormData(form);
+      submitButton.disabled = true;
+      status.textContent = 'Saving your details...';
+
+      try {
+        const response = await fetch('/api/enquiries', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.get('name'),
+            email: formData.get('email'),
+            phone: formData.get('phone'),
+            plan: formData.get('plan'),
+            message: 'Callback requested through Sai chat.',
+            chatTranscript: messages,
+          }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Unable to save your details.');
+        status.textContent = result.duplicate
+          ? 'We already have this enquiry and kept it in one record.'
+          : 'Thanks — your details and chat have been sent to our team.';
+        form.querySelectorAll('input, select, button').forEach(field => { field.disabled = true; });
+      } catch (error) {
+        status.textContent = error.message || 'Unable to save your details. Please call +91 98765 43210.';
+        submitButton.disabled = false;
+      }
+    });
+
+    messagesEl.appendChild(form);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    form.querySelector('input')?.focus();
   }
 
   // Auto-show popup on page load - show immediately and keep visible

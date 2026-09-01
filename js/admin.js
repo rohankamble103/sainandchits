@@ -10,6 +10,36 @@ function formatDate(value) {
   return new Date(value).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
 }
 
+function renderTranscript(messages) {
+  if (!Array.isArray(messages) || !messages.length) {
+    return '<div class="transcript-empty">No chatbot transcript was saved for this enquiry.</div>';
+  }
+  return messages.map(message => `
+    <div class="transcript-line transcript-${message.role === 'user' ? 'user' : 'sai'}">
+      <strong>${message.role === 'user' ? 'Visitor' : 'Sai'}</strong>
+      <span>${escapeAdminHtml(message.content)}</span>
+    </div>
+  `).join('');
+}
+
+function renderHistoryItem(enquiry) {
+  const followUps = [enquiry.followUp1, enquiry.followUp2, enquiry.followUp3].filter(Boolean);
+  return `
+    <article class="history-item">
+      <div class="history-item-top">
+        <strong>${formatDate(enquiry.createdAt)}</strong>
+        <span>${escapeAdminHtml(enquiry.status)}</span>
+      </div>
+      <div class="history-item-plan">${escapeAdminHtml(enquiry.plan || 'Plan not specified')}</div>
+      <div class="history-item-contact">${escapeAdminHtml(enquiry.name)} · ${escapeAdminHtml(enquiry.phone)} · ${escapeAdminHtml(enquiry.email)}</div>
+      <p>${escapeAdminHtml(enquiry.message || 'No message provided')}</p>
+      ${followUps.length ? `<div class="history-item-followups"><strong>Contact attempts:</strong> ${followUps.map(escapeAdminHtml).join(' · ')}</div>` : ''}
+      ${enquiry.adminNotes ? `<div class="history-item-notes"><strong>Team notes:</strong> ${escapeAdminHtml(enquiry.adminNotes)}</div>` : ''}
+      ${enquiry.chatTranscript?.length ? `<details><summary>Chat transcript (${enquiry.chatTranscript.length} messages)</summary><div class="transcript">${renderTranscript(enquiry.chatTranscript)}</div></details>` : ''}
+    </article>
+  `;
+}
+
 function showAlert(message, type = '') {
   const alert = document.getElementById('dashboardAlert');
   alert.textContent = message;
@@ -49,7 +79,7 @@ function renderEnquiries() {
   list.innerHTML = state.enquiries.map(enquiry => `
     <article class="enquiry-card" data-enquiry-id="${enquiry.id}">
       <div class="enquiry-top">
-        <div><h3>${escapeAdminHtml(enquiry.name)}</h3><p class="enquiry-meta">${formatDate(enquiry.createdAt)} · ${escapeAdminHtml(enquiry.plan || 'Plan not specified')}</p></div>
+        <div><h3>${escapeAdminHtml(enquiry.name)}</h3><p class="enquiry-meta">${formatDate(enquiry.createdAt)} · ${escapeAdminHtml(enquiry.plan || 'Plan not specified')} ${enquiry.chatTranscript?.length ? '· Chat with Sai' : ''}</p></div>
         <select class="status-select" data-field="status" aria-label="Enquiry status">
           ${['new', 'contacted', 'qualified', 'closed'].map(status => `<option value="${status}" ${status === enquiry.status ? 'selected' : ''}>${status[0].toUpperCase() + status.slice(1)}</option>`).join('')}
         </select>
@@ -62,7 +92,14 @@ function renderEnquiries() {
         <label>Contact attempt 3<textarea data-field="followUp3" rows="2">${escapeAdminHtml(enquiry.followUp3)}</textarea></label>
       </div>
       <label>Team description / notes<textarea data-field="adminNotes" rows="2" placeholder="Store your follow-up description here...">${escapeAdminHtml(enquiry.adminNotes)}</textarea></label>
-      <div class="enquiry-actions"><button class="admin-button save-enquiry" type="button">Save changes</button><button class="text-button delete-enquiry" type="button">Delete enquiry</button></div>
+      <div class="enquiry-actions">
+        ${enquiry.chatTranscript?.length ? '<button class="text-button view-chat" type="button">View chat</button>' : ''}
+        ${enquiry.historyCount > 1 ? `<button class="text-button view-history" data-history-count="${enquiry.historyCount}" type="button">History (${enquiry.historyCount})</button>` : ''}
+        <button class="admin-button save-enquiry" type="button">Save changes</button>
+        <button class="text-button delete-enquiry" type="button">Delete enquiry</button>
+      </div>
+      ${enquiry.chatTranscript?.length ? `<div class="chat-transcript" hidden><div class="transcript">${renderTranscript(enquiry.chatTranscript)}</div></div>` : ''}
+      ${enquiry.historyCount > 1 ? '<div class="history-panel" hidden></div>' : ''}
     </article>
   `).join('');
 }
@@ -204,6 +241,28 @@ document.getElementById('enquiriesList').addEventListener('click', async event =
   const card = event.target.closest('[data-enquiry-id]');
   if (!card) return;
   const id = card.dataset.enquiryId;
+  if (event.target.classList.contains('view-chat')) {
+    const panel = card.querySelector('.chat-transcript');
+    panel.hidden = !panel.hidden;
+    event.target.textContent = panel.hidden ? 'View chat' : 'Hide chat';
+    return;
+  }
+  if (event.target.classList.contains('view-history')) {
+    const panel = card.querySelector('.history-panel');
+    if (!panel.dataset.loaded) {
+      try {
+        const result = await api(`/api/admin/enquiries/${id}/history`);
+        panel.innerHTML = `<h4>Customer history</h4>${result.enquiries.map(renderHistoryItem).join('')}`;
+        panel.dataset.loaded = 'true';
+      } catch (error) {
+        showAlert(error.message, 'error');
+        return;
+      }
+    }
+    panel.hidden = !panel.hidden;
+    event.target.textContent = panel.hidden ? `History (${event.target.dataset.historyCount})` : 'Hide history';
+    return;
+  }
   if (event.target.classList.contains('delete-enquiry')) {
     if (!window.confirm('Delete this enquiry permanently?')) return;
     try {

@@ -26,6 +26,33 @@ function text(value, maxLength = 2000) {
   return String(value ?? '').trim().slice(0, maxLength);
 }
 
+function normalizedPhone(value) {
+  return String(value ?? '').replace(/\D/g, '').slice(-20);
+}
+
+function cleanChatTranscript(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter(message => message && ['user', 'assistant'].includes(message.role))
+    .slice(-40)
+    .map(message => ({
+      role: message.role,
+      content: text(message.content, 2000),
+    }))
+    .filter(message => message.content);
+}
+
+function enquiryDedupeKey(email, phoneKey, plan, message) {
+  return crypto
+    .createHash('sha256')
+    .update([email, phoneKey, text(plan, 180).toLowerCase(), text(message, 4000).toLowerCase()].join('|'))
+    .digest('hex');
+}
+
+function shouldOfferEnquiry(answer) {
+  return /contact|call|email|phone|reach|write|eligibility|document|availability|more information|our team|confirm exact|share your details|form below|@/i.test(answer);
+}
+
 function signedSession(username) {
   const payload = Buffer.from(JSON.stringify({
     username,
@@ -133,21 +160,23 @@ function adminEnquiry(row) {
     followUp2: row.follow_up_2,
     followUp3: row.follow_up_3,
     adminNotes: row.admin_notes,
+    chatTranscript: cleanChatTranscript(row.chat_transcript),
+    historyCount: Number(row.history_count || 1),
   };
 }
 
 function fallbackChatAnswer(messages) {
   const question = text(messages[messages.length - 1]?.content, 2000).toLowerCase();
   if (/plan|lakh|scheme|bhisi|monthly|installment|instalment/.test(question)) {
-    return 'We currently show ₹5 Lakh, ₹10 Lakh, ₹15 Lakh, and ₹20 Lakh Bhisi plans. Please contact our team for current availability, exact instalments, eligibility, and documents.';
+    return 'We currently show ₹5 Lakh, ₹10 Lakh, ₹15 Lakh, and ₹20 Lakh Bhisi plans. For current availability, exact instalments, eligibility, and documents, please share your details in the form below and our team will contact you.';
   }
   if (/contact|phone|call|email|office|address|location|nagpur/.test(question)) {
-    return 'You can reach Sainand Chits India at +91 98765 43210 or info@sainandchitfund.com. Our office is in Nagpur, Maharashtra.';
+    return 'You can reach Sainand Chits India at +91 98765 43210 or info@sainandchitfund.com. Our office is in Nagpur, Maharashtra. If you would like a callback, please share your details in the form below.';
   }
   if (/bid|boli|auction|discount|dividend|how.*work/.test(question)) {
-    return 'Each member pays the fixed instalment into a shared pool. Members who need the payout bid openly, and the winning discount is shared with the remaining members. Confirm exact rules with our team.';
+    return 'Each member pays the fixed instalment into a shared pool. Members who need the payout bid openly, and the winning discount is shared with the remaining members. For the exact rules, please share your details in the form below and our team will contact you.';
   }
-  return 'I can share general information about our Bhisi plans and bidding process. For exact eligibility, fees, documents, availability, or account-specific help, please call +91 98765 43210 or email info@sainandchitfund.com.';
+  return 'I can share general information about our Bhisi plans and bidding process. For exact eligibility, fees, documents, availability, or account-specific help, please share your details in the form below and our team will contact you.';
 }
 
 const upload = multer({
@@ -192,19 +221,44 @@ app.post('/api/enquiries', async (request, response) => {
   const email = text(request.body?.email, 254).toLowerCase();
   const plan = text(request.body?.plan, 180);
   const message = text(request.body?.message, 4000);
+  const phoneKey = normalizedPhone(phone);
+  const chatTranscript = cleanChatTranscript(request.body?.chatTranscript);
 
-  if (!name || !phone || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (!name || !phone || phoneKey.length < 10 || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return response.status(400).json({ error: 'Please provide a valid name, phone number, and email address.' });
   }
 
   try {
-    const result = await pool.query(
-      `INSERT INTO enquiries (name, phone, email, plan, message)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, created_at`,
-      [name, phone, email, plan, message],
+    const contactKey = email;
+    const dedupeKey = enquiryDedupeKey(email, phoneKey, plan, message);
+    const existing = await pool.query(
+      'SELECT * FROM enquiries WHERE email = $1 AND phone_key = $2 AND dedupe_key = $3 ORDER BY created_at DESC LIMIT 1',
+      [email, phoneKey, dedupeKey],
     );
-    response.status(201).json({ success: true, enquiry: result.rows[0] });
+
+    if (existing.rowCount) {
+      const existingRow = existing.rows[0];
+      const updated = chatTranscript.length
+        ? await pool.query(
+          'UPDATE enquiries SET chat_transcript = $1::jsonb WHERE id = $2 RETURNING *',
+          [JSON.stringify(chatTranscript), existingRow.id],
+        )
+        : { rows: [existingRow] };
+      return response.status(200).json({
+        success: true,
+        duplicate: true,
+        enquiry: adminEnquiry(updated.rows[0]),
+      });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO enquiries
+        (name, phone, email, plan, message, contact_key, phone_key, dedupe_key, chat_transcript)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
+       RETURNING *`,
+      [name, phone, email, plan, message, contactKey, phoneKey, dedupeKey, JSON.stringify(chatTranscript)],
+    );
+    response.status(201).json({ success: true, enquiry: adminEnquiry(result.rows[0]) });
   } catch (error) {
     console.error('Enquiry save error:', error);
     response.status(500).json({ error: 'Unable to save your enquiry right now. Please call us directly.' });
@@ -233,7 +287,8 @@ Business details:
 - Plans shown on the website include 5 Lakh, 10 Lakh, 15 Lakh, and 20 Lakh Bhisi plans.
 - Exact eligibility, fees, bidding rules, documents, and availability must be confirmed by the company team.
 - Do not promise approvals, returns, or financial outcomes.
-- For account-specific or urgent questions, direct the visitor to the phone number or email above.
+- For account-specific questions or when a visitor wants more information or a callback, invite them to fill in the enquiry form below with their name, email, phone number, and interested plan.
+- For urgent questions, also share the phone number or email above.
 - Never claim to be a human or to have access to private customer records.`;
 
   try {
@@ -260,13 +315,14 @@ Business details:
         result.error?.code === 'token_invalidated' ||
         result.error?.code === 'invalid_api_key'
       ) {
-        return response.json({ answer: fallbackChatAnswer(messages), fallback: true });
+        const answer = fallbackChatAnswer(messages);
+        return response.json({ answer, fallback: true, showEnquiryForm: shouldOfferEnquiry(answer) });
       }
       return response.status(502).json({ error: 'The chat service is temporarily unavailable.' });
     }
     const answer = result.choices?.[0]?.message?.content?.trim();
     if (!answer) return response.status(502).json({ error: 'The chat service returned no answer.' });
-    response.json({ answer });
+    response.json({ answer, showEnquiryForm: shouldOfferEnquiry(answer) });
   } catch (error) {
     console.error('Chat endpoint error:', error);
     response.status(500).json({ error: 'Unable to process the chat message.' });
@@ -304,11 +360,49 @@ app.get('/api/admin/session', (request, response) => {
 
 app.get('/api/admin/enquiries', requireAdmin, async (_request, response) => {
   try {
-    const result = await pool.query('SELECT * FROM enquiries ORDER BY created_at DESC');
+    const result = await pool.query(
+      `SELECT e.*,
+        (SELECT COUNT(*) FROM enquiries history
+         WHERE history.email = e.email OR history.phone_key = e.phone_key) AS history_count
+       FROM enquiries e
+       ORDER BY e.created_at DESC`,
+    );
     response.json({ enquiries: result.rows.map(adminEnquiry) });
   } catch (error) {
     console.error('Admin enquiries error:', error);
     response.status(500).json({ error: 'Unable to load enquiries.' });
+  }
+});
+
+app.get('/api/admin/enquiries/:id/history', requireAdmin, async (request, response) => {
+  const id = validId(request.params.id);
+  if (!id) return response.status(400).json({ error: 'Invalid enquiry.' });
+
+  try {
+    const selected = await pool.query('SELECT * FROM enquiries WHERE id = $1', [id]);
+    if (!selected.rowCount) return response.status(404).json({ error: 'Enquiry not found.' });
+
+    const enquiry = selected.rows[0];
+    const result = await pool.query(
+      `SELECT e.*,
+        (SELECT COUNT(*) FROM enquiries history
+         WHERE history.email = e.email OR history.phone_key = e.phone_key) AS history_count
+       FROM enquiries e
+       WHERE e.email = $1 OR e.phone_key = $2
+       ORDER BY e.created_at DESC`,
+      [enquiry.email, enquiry.phone_key],
+    );
+    response.json({
+      customer: {
+        name: enquiry.name,
+        email: enquiry.email,
+        phone: enquiry.phone,
+      },
+      enquiries: result.rows.map(adminEnquiry),
+    });
+  } catch (error) {
+    console.error('Enquiry history error:', error);
+    response.status(500).json({ error: 'Unable to load enquiry history.' });
   }
 });
 
