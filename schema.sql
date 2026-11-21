@@ -14,7 +14,10 @@ CREATE TABLE IF NOT EXISTS enquiries (
   contact_key VARCHAR(254) NOT NULL DEFAULT '',
   phone_key VARCHAR(40) NOT NULL DEFAULT '',
   dedupe_key TEXT NOT NULL DEFAULT '',
-  chat_transcript JSONB NOT NULL DEFAULT '[]'::jsonb
+  chat_transcript JSONB NOT NULL DEFAULT '[]'::jsonb,
+  scheduled_call_at TIMESTAMPTZ DEFAULT NULL,
+  scheduled_call_note TEXT NOT NULL DEFAULT '',
+  scheduled_call_status VARCHAR(30) NOT NULL DEFAULT 'pending'
 );
 
 CREATE TABLE IF NOT EXISTS news_posts (
@@ -67,19 +70,57 @@ CREATE TABLE IF NOT EXISTS site_certificates (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS job_openings (
+  id SERIAL PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  title VARCHAR(180) NOT NULL,
+  department VARCHAR(100) NOT NULL DEFAULT 'General',
+  location VARCHAR(120) NOT NULL DEFAULT 'Nagpur, Maharashtra',
+  job_type VARCHAR(50) NOT NULL DEFAULT 'Full Time',
+  experience VARCHAR(50) NOT NULL DEFAULT '1-3 Years',
+  description TEXT NOT NULL DEFAULT '',
+  requirements TEXT NOT NULL DEFAULT '',
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  sort_order INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS job_applications (
+  id SERIAL PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  job_opening_id INTEGER REFERENCES job_openings(id) ON DELETE SET NULL,
+  position_name VARCHAR(180) NOT NULL DEFAULT 'General Application',
+  first_name VARCHAR(80) NOT NULL,
+  last_name VARCHAR(80) NOT NULL,
+  email VARCHAR(254) NOT NULL,
+  phone VARCHAR(40) NOT NULL,
+  address VARCHAR(255) NOT NULL DEFAULT '',
+  city VARCHAR(100) NOT NULL,
+  state VARCHAR(100) NOT NULL,
+  country VARCHAR(100) NOT NULL DEFAULT 'India',
+  pincode VARCHAR(20) NOT NULL,
+  resume_url TEXT NOT NULL,
+  resume_filename VARCHAR(255) NOT NULL,
+  notes TEXT NOT NULL DEFAULT '',
+  status VARCHAR(30) NOT NULL DEFAULT 'new'
+);
+
 CREATE INDEX IF NOT EXISTS enquiries_created_at_idx ON enquiries (created_at DESC);
 CREATE INDEX IF NOT EXISTS enquiries_contact_key_idx ON enquiries (contact_key);
 CREATE INDEX IF NOT EXISTS enquiries_phone_key_idx ON enquiries (phone_key);
 CREATE INDEX IF NOT EXISTS enquiries_dedupe_key_idx ON enquiries (dedupe_key);
+CREATE INDEX IF NOT EXISTS enquiries_scheduled_call_idx ON enquiries (scheduled_call_at);
 CREATE INDEX IF NOT EXISTS news_posts_category_created_at_idx ON news_posts (category, created_at DESC);
 CREATE INDEX IF NOT EXISTS site_faqs_sort_order_idx ON site_faqs (sort_order, id);
 CREATE INDEX IF NOT EXISTS support_items_sort_order_idx ON support_items (sort_order, id);
 CREATE INDEX IF NOT EXISTS site_certificates_sort_order_idx ON site_certificates (sort_order, id);
+CREATE INDEX IF NOT EXISTS job_openings_active_idx ON job_openings (is_active, sort_order);
+CREATE INDEX IF NOT EXISTS job_applications_created_at_idx ON job_applications (created_at DESC);
 
 INSERT INTO site_pages (slug, title, intro, body)
 VALUES
   ('faq', 'Frequently asked questions', 'Clear answers about Bhisi savings, bidding, documents, and membership.', 'Have a question about how Sainand Chits works? Start with the answers below, or contact our team for help with your specific situation.'),
-  ('contact-us', 'Contact Sainand Chits India', 'Our team is here to answer your questions about Bhisi savings and membership.', 'Call us at +91 98765 43210 or email info@sainandchitfund.com. Our office is in Nagpur, Maharashtra, and our support team is available Monday to Saturday, 10:00 AM to 7:00 PM IST.'),
+  ('contact-us', 'Contact Sainand Chits India', 'Our team is here to answer your questions about Bhisi savings and membership.', 'Call us at +91 92724 60719 or email support@sainandchits.com. Our office is in Nagpur, Maharashtra, and our support team is available Monday to Saturday, 10:00 AM to 7:00 PM IST.'),
   ('support-center', 'Support Center', 'Find the right way to get help with your enquiry, documents, or member support.', 'Choose a support option below and our team will guide you through the next step. For urgent assistance, call us directly during office hours.'),
   ('privacy-policy', 'Privacy Policy', 'How Sainand Chits India handles information shared through this website.', 'We use the information you submit through our enquiry forms to respond to your request, explain relevant Bhisi plans, and provide member support. We do not sell your personal information. You can contact us to ask about information associated with your enquiry or to request an update.'),
   ('authorized-certificates', 'Authorized Certificates', 'Company certificates and documents published by Sainand Chits India.', 'The documents below are shared for transparency and reference. Please contact our office if you need help verifying a document or require a current copy.'),
@@ -95,7 +136,7 @@ SELECT 'How do I choose a plan?', 'Choose a plan based on the amount you need an
 WHERE NOT EXISTS (SELECT 1 FROM site_faqs WHERE question = 'How do I choose a plan?');
 
 INSERT INTO site_faqs (question, answer, sort_order)
-SELECT 'How can I contact the Sainand Chits team?', 'Call +91 98765 43210, email info@sainandchitfund.com, or send an enquiry through the website.', 30
+SELECT 'How can I contact the Sainand Chits team?', 'Call +91 92724 60719, email support@sainandchits.com, or send an enquiry through the website.', 30
 WHERE NOT EXISTS (SELECT 1 FROM site_faqs WHERE question = 'How can I contact the Sainand Chits team?');
 
 INSERT INTO support_items (title, description, link_url, sort_order)
@@ -103,9 +144,17 @@ SELECT 'Plan and eligibility help', 'Ask about current Bhisi plans, monthly inst
 WHERE NOT EXISTS (SELECT 1 FROM support_items WHERE title = 'Plan and eligibility help');
 
 INSERT INTO support_items (title, description, link_url, sort_order)
-SELECT 'Member support', 'Contact our team for help with bidding, statements, account questions, or follow-up.', 'tel:+919876543210', 20
+SELECT 'Member support', 'Contact our team for help with bidding, statements, account questions, or follow-up.', 'tel:+919272460719', 20
 WHERE NOT EXISTS (SELECT 1 FROM support_items WHERE title = 'Member support');
 
 INSERT INTO support_items (title, description, link_url, sort_order)
 SELECT 'Office and document verification', 'Reach us directly if you need help verifying a certificate or visiting our Nagpur office.', '/contact-us', 30
 WHERE NOT EXISTS (SELECT 1 FROM support_items WHERE title = 'Office and document verification');
+
+INSERT INTO job_openings (title, department, location, job_type, experience, description, requirements, is_active, sort_order)
+SELECT 'Chit Fund Relationship Officer', 'Sales & Operations', 'Nagpur, Maharashtra', 'Full Time', '1-3 Years', 'Guide prospective members through Bhisi savings plans, assist with documentation, and support monthly bidding cycles.', 'Strong communication skills in Marathi/Hindi/English, basic understanding of chit funds or financial products, customer-focused approach.', TRUE, 10
+WHERE NOT EXISTS (SELECT 1 FROM job_openings WHERE title = 'Chit Fund Relationship Officer');
+
+INSERT INTO job_openings (title, department, location, job_type, experience, description, requirements, is_active, sort_order)
+SELECT 'Accounts & Compliance Executive', 'Finance & Accounts', 'Nagpur, Maharashtra', 'Full Time', '2-4 Years', 'Manage daily ledgers, member dividend records, bidding records, and assist with compliance filings under Chit Funds Act.', 'B.Com / M.Com or equivalent, proficiency in Tally/accounting software, attention to detail and ledger accuracy.', TRUE, 20
+WHERE NOT EXISTS (SELECT 1 FROM job_openings WHERE title = 'Accounts & Compliance Executive');

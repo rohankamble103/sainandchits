@@ -2,17 +2,25 @@
   "name": "workspace",
   "version": "1.0.0",
   "main": "server.js",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "node server.js",
-    "test": "node --check server.js"
+    "test": "node --check server.js",
+    "check-config": "node services/config-check.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "compression": "^1.8.2",
+    "dotenv": "^17.4.2",
+    "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "multer": "^2.3.0",
+    "nodemailer": "^10.3.1",
     "pg": "^8.23.0"
   }
 }

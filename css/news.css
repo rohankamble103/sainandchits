@@ -164,4 +164,5 @@
   .news-row-heading h2 {
     margin-top: 6px;
   }
-}
+}.news-content { padding: 48px 0 56px; }
+.news-content { padding-bottom: 40px; } .news-status { margin-bottom: 24px; }

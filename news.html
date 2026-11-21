@@ -3,86 +3,89 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>News &amp; Announcements | Sainand Chits India</title>
+  <title>News / Blogs | Sainand Chits India</title>
   <meta name="description" content="Watch Sainand Chits India videos and read the latest news and announcements.">
-  <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23B4181C' width='100' height='100'/><text x='50' y='65' font-size='60' font-weight='bold' fill='white' text-anchor='middle' font-family='serif'>S</text></svg>">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700;900&amp;family=Work+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <link rel="preload" href="/fonts/work-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/css/styles.css">
   <link rel="stylesheet" href="/css/news.css">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32.png">
+<link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<meta name="theme-color" content="#9e1418">
 </head>
 <body>
-  <div class="top-bar">
-    <div class="wrap">
-      <div class="contacts">
-        <a class="top-contact" href="tel:+919876543210"><span>&#9742; +91 98765 43210</span></a>
-        <a class="top-contact" href="mailto:info@sainandchitfund.com"><span>&#9993; info@sainandchitfund.com</span></a>
-      </div>
-      <div class="location"><span>&#128205; Nagpur, Maharashtra</span></div>
-    </div>
-  </div>
-  <header>
-    <div class="wrap">
-      <a class="brand" href="/">
-        <img src="/images/logo.png" alt="Sainand Chits India Pvt. Ltd." class="logo-img">
-      </a>
-      <nav>
-        <ul class="menu-desktop">
-          <li><a href="/">Home</a></li>
-          <li><a href="/#plans">Plans</a></li>
-          <li><a href="/#about">About Us</a></li>
-          <li><a class="active" href="/news">News &amp; Announcements</a></li>
-          <li><a href="/contact-us">Contact Us</a></li>
-        </ul>
-        <a href="/#contact" class="btn-fill menu-desktop">Enquire Now</a>
-        <button class="menu-toggle" aria-label="Menu" aria-expanded="false">&#9776;</button>
-      </nav>
-    </div>
-  </header>
+  <!--@topbar-->
+  <!--@header page="news"-->
 
   <main>
     <section class="news-hero">
       <div class="wrap section-head">
-        <div class="eyebrow">News &amp; Announcements</div>
-        <h1>Updates from Sainand Chits</h1>
+        <div class="eyebrow">News</div>
+        <h1>News &amp; updates</h1>
         <p>Watch our latest videos and stay informed about Bhisi savings, member updates, and company news.</p>
       </div>
     </section>
     <section class="news-content">
       <div class="wrap">
         <div id="newsStatus" class="news-status">Loading the latest updates...</div>
-        <div class="news-row-block">
+        <div class="news-row-block" hidden>
+          <div class="news-row-heading"><span class="news-row-kicker">Read</span><h2>News / Blogs</h2></div>
+          <div id="newsPosts" class="news-grid"></div>
+        </div>
+        <div class="news-row-block" hidden>
           <div class="news-row-heading"><span class="news-row-kicker">Watch</span><h2>YouTube Videos</h2></div>
           <div id="youtubePosts" class="news-grid"></div>
         </div>
-        <div class="news-row-block">
-          <div class="news-row-heading"><span class="news-row-kicker">Follow</span><h2>Instagram Videos</h2></div>
+        <div class="news-row-block" hidden>
+          <div class="news-row-heading"><span class="news-row-kicker">Follow</span><h2>Instagram</h2></div>
           <div id="instagramPosts" class="news-grid"></div>
-        </div>
-        <div class="news-row-block">
-          <div class="news-row-heading"><span class="news-row-kicker">Read</span><h2>News &amp; Announcements</h2></div>
-          <div id="newsPosts" class="news-grid"></div>
         </div>
       </div>
     </section>
   </main>
 
-  <footer>
-    <div class="wrap">
-      <div class="footer-grid">
-        <div class="footer-col">
-          <div class="footer-brand"><div class="footer-logo-plate"><img src="/images/logo.png" alt="Sainand Chits India Pvt. Ltd." class="footer-logo-img"></div></div>
-          <p>A registered chit fund company running auction-based Bhisi savings groups across Maharashtra with complete transparency and member protection.</p>
+  <div class="enquiry-modal" id="enquiryModal" hidden aria-hidden="true">
+    <div class="enquiry-modal-backdrop" data-enquiry-close></div>
+    <section class="enquiry-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="enquiryModalTitle">
+      <button type="button" class="enquiry-modal-close" id="enquiryModalClose" aria-label="Close enquiry form">&times;</button>
+      <div class="eyebrow">Start your enquiry</div>
+      <h2 id="enquiryModalTitle">Let’s find the right Bhisi plan for you</h2>
+      <p class="enquiry-modal-intro">Share your details and our team will get back to you with the right information.</p>
+
+      <form id="modalEnquiryForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="modalName">Full name <span class="required" aria-label="required">*</span></label>
+            <input type="text" id="modalName" name="name" required aria-required="true" placeholder="Enter your full name">
+          </div>
+          <div class="form-group">
+            <label for="modalPhone">Phone number <span class="required" aria-label="required">*</span></label>
+            <input type="tel" id="modalPhone" name="phone" required aria-required="true" placeholder="10-digit mobile number">
+          </div>
         </div>
-        <div class="footer-col"><h4>Quick Links</h4><ul><li><a href="/">Home</a></li><li><a href="/#plans">Plans</a></li><li><a href="/#about">About Us</a></li><li><a href="/news">News &amp; Announcements</a></li><li><a href="/faq">FAQ</a></li><li><a href="/contact-us">Contact Us</a></li></ul></div>
-        <div class="footer-col"><h4>Information</h4><ul><li><a href="/support-center">Support Center</a></li><li><a href="/authorized-certificates">Authorized Certificates</a></li><li><a href="/privacy-policy">Privacy Policy</a></li><li><a href="/terms-and-conditions">Terms &amp; Conditions</a></li></ul></div>
-        <div class="footer-col"><h4>Contact</h4><p>+91 98765 43210</p><p>info@sainandchitfund.com</p><p>Nagpur, Maharashtra</p></div>
-      </div>
-      <div class="footer-bottom">© 2026 Sainand Chits India Pvt. Ltd. All rights reserved.</div>
-    </div>
-  </footer>
-  <script src="/js/news.js"></script>
-  <script src="/js/mobile-menu.js"></script>
+        <div class="form-group">
+          <label for="modalEmail">Email address <span class="required" aria-label="required">*</span></label>
+          <input type="email" id="modalEmail" name="email" required aria-required="true" placeholder="your.email@example.com">
+        </div>
+        <div class="form-group">
+          <label for="modalPlan">Interested plan</label>
+          <select id="modalPlan" name="plan"><!--@planOptions--></select>
+        </div>
+        <div class="form-group">
+          <label for="modalMessage">Description</label>
+          <textarea id="modalMessage" name="message" placeholder="Tell us about your requirement, timeline, or any questions..."></textarea>
+        </div>
+        <div class="form-note" id="modalFormNote">Please fill in your name, phone and email before sending.</div>
+        <button type="submit" class="btn-fill enquiry-modal-submit">Send Enquiry</button>
+        <div class="form-success" id="modalFormSuccess" role="status" aria-live="polite">✓ Enquiry sent successfully. Our team will contact you soon.</div>
+      </form>
+    </section>
+  </div>
+
+  <!--@footer-->
+  <!--@siteConfig-->
+  <script src="/js/news.js" defer></script>
+  <script src="/js/script.js" defer></script>
 </body>
 </html>

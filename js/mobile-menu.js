@@ -22,6 +22,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!menu.contains(event.target) && !menuToggle.contains(event.target)) closeMenu();
   });
   window.addEventListener('resize', () => {
-    if (window.innerWidth > 900) closeMenu();
+    if (window.innerWidth > 1024) closeMenu();
   });
 });

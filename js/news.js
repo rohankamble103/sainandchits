@@ -44,9 +44,12 @@ function mediaMarkup(post) {
 function renderPosts(posts, category, elementId) {
   const target = document.getElementById(elementId);
   const matching = posts.filter(post => post.category === category);
+  // Sections without any posts are hidden, so the page never looks unfinished.
+  const block = target.closest('.news-row-block');
+  if (block) block.hidden = !matching.length;
   if (!matching.length) {
-    target.innerHTML = '<div class="news-empty">New updates will appear here soon.</div>';
-    return;
+    target.innerHTML = '';
+    return 0;
   }
   target.innerHTML = matching.map(post => `
     <article class="news-card">
@@ -58,6 +61,7 @@ function renderPosts(posts, category, elementId) {
       </div>
     </article>
   `).join('');
+  return matching.length;
 }
 
 async function loadNews() {
@@ -66,10 +70,15 @@ async function loadNews() {
     const response = await fetch('/api/news');
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Unable to load updates');
-    renderPosts(result.posts, 'youtube', 'youtubePosts');
-    renderPosts(result.posts, 'instagram', 'instagramPosts');
-    renderPosts(result.posts, 'news', 'newsPosts');
-    status.remove();
+    const shown = renderPosts(result.posts, 'news', 'newsPosts')
+      + renderPosts(result.posts, 'youtube', 'youtubePosts')
+      + renderPosts(result.posts, 'instagram', 'instagramPosts');
+    if (shown) status.remove();
+    else {
+      // Nothing published yet: one friendly message instead of three empty boxes.
+      status.className = 'news-status news-none';
+      status.innerHTML = 'We are preparing our first updates. Meanwhile, <a href="/#plans">see our plans</a> or <a href="/contact-us">talk to our team</a>.';
+    }
   } catch (error) {
     status.textContent = error.message || 'Unable to load updates right now.';
     status.classList.add('is-error');
