@@ -108,7 +108,7 @@ function initSupportRequestForm() {
     if (!data.topic) return showNote('Please choose what you need help with.');
     if (data.topic !== 'privacy' && String(data.message || '').trim().length < 5) return showNote('Please tell us a little about your request.');
     const problem = tries()?.problem(form);
-    if (problem) return showNote(problem);
+    if (problem) return showNote(problem === tries()?.CONSENT_MISSING ? '' : problem);
     showNote('');
     button.disabled = true;
     button.textContent = 'Sending...';

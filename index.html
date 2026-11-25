@@ -14,7 +14,8 @@
 
 <!-- Twitter Card Tags -->
 
-<link rel="preload" as="image" href="/images/banners/bhisi-5-lakh-full.webp" fetchpriority="high">
+<link rel="preload" as="image" href="/images/banners/hero-main-full.webp" fetchpriority="high" media="(min-width: 641px)">
+<link rel="preload" as="image" href="/images/banners/hero-main-mobile.webp" fetchpriority="high" media="(max-width: 640px)">
 <link rel="preload" href="/fonts/work-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/styles.css">
 
@@ -41,7 +42,7 @@
 
   <div class="hero-banner-copy wrap">
     <h1>{{years}} years of trusted service in Maharashtra.</h1>
-    <p>Now offering registered Bhisi savings in {{city}} — transparent bidding, a statement every month, and a team you can visit.</p>
+    <p>Registered Bhisi savings made simple: fair bidding, full transparency, and a team that treats you like family.</p>
     <div class="hero-actions">
       <a href="#contact" class="btn-fill enquiry-trigger">Enquire Now</a>
       <a href="#plans" class="btn-light">View Plans</a>
@@ -108,7 +109,7 @@
     <div class="section-head">
       <div class="eyebrow">Plans</div>
       <h2>Choose a plan that fits your goal</h2>
-      <p>{{planCount}} plan sizes from {{planRange}}. Pick a size and our team will explain the details.</p>
+      <p>{{planCount}} plan sizes from {{planRange}}. Each card shows how long the group runs and the full monthly instalment.</p>
     </div>
     <div class="plan-scroller">
       <button type="button" class="plan-nav prev" aria-label="Previous plans" hidden>&#8249;</button>
@@ -117,7 +118,6 @@
       </div>
       <button type="button" class="plan-nav next" aria-label="More plans" hidden>&#8250;</button>
     </div>
-    <p class="plans-disclaimer">Monthly instalments depend on the plan and each month’s bidding. Our team will share the exact details on enquiry.</p>
   </div>
 </section>
 
@@ -223,11 +223,13 @@
             <div class="form-group"><label for="fname">Full name <span class="required" aria-label="required">*</span></label><input type="text" id="fname" name="fname" required aria-required="true" placeholder="Enter your full name" autocomplete="name"></div>
             <div class="form-group"><label for="fphone">Phone number <span class="required" aria-label="required">*</span></label><input type="tel" id="fphone" name="fphone" required aria-required="true" placeholder="10-digit mobile number" autocomplete="tel"></div>
           </div>
-          <div class="form-group"><label for="femail">Email address <span class="required" aria-label="required">*</span></label><input type="email" id="femail" name="femail" required aria-required="true" placeholder="your.email@example.com" autocomplete="email"></div>
-          <div class="form-group"><label for="fplan">Interested plan</label>
-            <select id="fplan" name="fplan"><!--@planOptions--></select>
+          <div class="form-row">
+            <div class="form-group"><label for="femail">Email address <span class="required" aria-label="required">*</span></label><input type="email" id="femail" name="femail" required aria-required="true" placeholder="your.email@example.com" autocomplete="email"></div>
+            <div class="form-group"><label for="fplan">Interested plan</label>
+              <select id="fplan" name="fplan"><!--@planOptions--></select>
+            </div>
           </div>
-          <div class="form-group"><label for="fmsg">Message</label><textarea id="fmsg" name="fmsg" placeholder="Tell us about your requirement, timeline, or any questions..."></textarea></div>
+          <div class="form-group"><label for="fmsg">Message <span class="optional">(optional)</span></label><textarea id="fmsg" name="fmsg" rows="2" placeholder="Any question for our team?"></textarea></div>
           <div class="form-note" id="formNote">Please fill in your name, phone and email before sending.</div>
           <button type="submit" class="btn-fill" style="width:100%;">Send enquiry</button>
           <div class="form-success" id="formSuccess">✓ Enquiry sent successfully. Our team will contact you soon.</div>
@@ -244,17 +246,54 @@
   <section class="enquiry-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="enquiryModalTitle">
     <button type="button" class="enquiry-modal-close" id="enquiryModalClose" aria-label="Close enquiry form">&times;</button>
     <div class="enquiry-modal-start">
+    <div class="enquiry-modal-head" id="enquiryModalHead">
     <div class="eyebrow">Start your enquiry</div>
     <h2 id="enquiryModalTitle">Let’s find the right Bhisi plan for you</h2>
     <p class="enquiry-modal-intro">Share your details and our team will get back to you.</p>
+    </div>
+    <!-- Plan details: filled in when someone clicks "View Details" on a plan card -->
+    <div class="plan-detail" id="planDetail" hidden>
+      <div class="pd-hero">
+        <span class="pd-tag" id="planDetailTag" hidden>★ Most popular</span>
+        <p class="pd-kicker">Sainand Bhisi plan</p>
+        <h2 class="pd-title" id="planDetailTitle">₹5 Lakh Bhisi</h2>
+        <p class="pd-lead" id="planDetailLead"></p>
+      </div>
+      <div class="pd-body">
+        <div class="pd-card">
+          <div class="pd-pay">
+            <span class="pd-pay-label">Full monthly instalment</span>
+            <span class="pd-pay-amount" id="planDetailInstalment"></span>
+          </div>
+          <dl class="pd-stats">
+            <div><dt>Plan amount</dt><dd id="planDetailAmount"></dd></div>
+            <div><dt>Duration</dt><dd id="planDetailMonths"></dd></div>
+            <div><dt>Members</dt><dd id="planDetailMembers"></dd></div>
+          </dl>
+        </div>
+        <ul class="pd-benefits" aria-label="Why families choose this plan">
+          <li>Registered company</li>
+          <li>Open monthly auction</li>
+          <li>Statement every month</li>
+        </ul>
+        <p class="pd-note"><strong>You may pay less:</strong> from month 3, the amount depends on each month’s auction.</p>
+        <button type="button" class="btn-fill pd-cta" id="planDetailCta">Enquire Now</button>
+        <p class="pd-call">or call <a href="{{phoneHref}}">{{phone}}</a></p>
+      </div>
+    </div>
+    <!-- Step 2 of the plan pop-up: the short form -->
+    <div class="pd-formhead" id="planFormHead" hidden>
+      <button type="button" class="pd-back" id="planFormBack">← Back to plan details</button>
+      <h2 id="planFormTitle">Enquire about ₹5 Lakh Bhisi</h2>
+    </div>
     <form id="modalEnquiryForm">
       <div class="form-row">
         <div class="form-group"><label for="modalName">Full name <span class="required" aria-label="required">*</span></label><input type="text" id="modalName" name="name" required aria-required="true" placeholder="Enter your full name" autocomplete="name"></div>
         <div class="form-group"><label for="modalPhone">Phone number <span class="required" aria-label="required">*</span></label><input type="tel" id="modalPhone" name="phone" required aria-required="true" placeholder="10-digit mobile number" autocomplete="tel"></div>
       </div>
       <div class="form-group"><label for="modalEmail">Email address <span class="required" aria-label="required">*</span></label><input type="email" id="modalEmail" name="email" required aria-required="true" placeholder="your.email@example.com" autocomplete="email"></div>
-      <div class="form-group"><label for="modalPlan">Interested plan</label><select id="modalPlan" name="plan"><!--@planOptions--></select></div>
-      <div class="form-group"><label for="modalMessage">Message</label><textarea id="modalMessage" name="message" placeholder="Tell us about your requirement, timeline, or any questions..."></textarea></div>
+      <div class="form-group" id="modalPlanGroup"><label for="modalPlan">Interested plan</label><select id="modalPlan" name="plan"><!--@planOptions--></select></div>
+      <div class="form-group" id="modalMessageGroup"><label for="modalMessage">Message</label><textarea id="modalMessage" name="message" placeholder="Tell us about your requirement, timeline, or any questions..."></textarea></div>
       <div class="form-note" id="modalFormNote">Please fill in your name, phone and email before sending.</div>
       <button type="submit" class="btn-fill enquiry-modal-submit">Send enquiry</button>
       <div class="form-success" id="modalFormSuccess" role="status" aria-live="polite">✓ Enquiry sent successfully. Our team will contact you soon.</div>
@@ -296,7 +335,7 @@
     </div>
   </div>
   <button class="bot-avatar" id="botAvatar" aria-label="Chat with Sai">
-    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cdefs%3E%3ClinearGradient id='bgGrad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23ff0000;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%23b80000;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='60' cy='60' r='60' fill='url(%23bgGrad)'/%3E%3Cpath d='M30 50c0-16.6 13.4-30 30-30s30 13.4 30 30v18c0 16.6-13.4 30-30 30H50v10l-10-10H30c-16.6 0-30-13.4-30-30V50z' fill='%23fff' opacity='0.15'/%3E%3Ccircle cx='45' cy='52' r='4' fill='%23fff'/%3E%3Ccircle cx='75' cy='52' r='4' fill='%23fff'/%3E%3Cpath d='M45 68c5 4 24 4 30 0' stroke='%23fff' stroke-width='4' stroke-linecap='round' fill='none' opacity='0.9'/%3E%3Cpath d='M60 35v8' stroke='%23ff4444' stroke-width='4' stroke-linecap='round'/%3E%3Ccircle cx='60' cy='32' r='5' fill='%23ff4444'/%3E%3Ccircle cx='60' cy='32' r='8' fill='none' stroke='%23ff4444' stroke-width='1.5' opacity='0.4'/%3E%3C/svg%3E" alt="Sai AI Assistant" class="bot-icon">
+    <img src="/images/chat-avatar.png" alt="" class="bot-icon" width="76" height="76">
 </div>
 
 <!--@siteConfig-->

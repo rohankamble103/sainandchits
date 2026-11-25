@@ -16,8 +16,8 @@ window.SainandForms = (() => {
     application: () => `<strong>How we use your details:</strong> We use your application and CV only to consider you for jobs at Sainand Chits India and to contact you about it. You can ask us to delete them at any time by emailing <a href="mailto:${officeEmail()}">${officeEmail()}</a>, and you may complain to the Data Protection Board of India. <a href="/privacy-policy" target="_blank" rel="noopener">Privacy Policy</a>`,
   };
   const CONSENT = {
-    enquiry: 'I agree that Sainand Chits India may contact me about my enquiry or request by phone, WhatsApp or email.',
-    application: 'I agree that Sainand Chits India may use my application and CV to consider me for jobs and contact me about it.',
+    enquiry: 'I agree to be contacted by phone, WhatsApp or email about my enquiry, as per the <a href="/privacy-policy" target="_blank" rel="noopener">Privacy Policy</a>.',
+    application: 'I agree to Sainand Chits India using my application and CV for hiring, as per the <a href="/privacy-policy" target="_blank" rel="noopener">Privacy Policy</a>.',
   };
 
   // ---- Cloudflare Turnstile (used instead of the sum when the site key is set) ----
@@ -63,6 +63,48 @@ window.SainandForms = (() => {
     return input ? input.value : '';
   }
 
+  // Wait (up to ~12 s) for Cloudflare's invisible check to finish. If it seems stuck, restart it once.
+  function waitForToken(box, ms = 12000) {
+    const slot = box.querySelector('.hc-turnstile');
+    let restarted = false;
+    return new Promise(resolve => {
+      const started = Date.now();
+      const tick = () => {
+        if (turnstileToken(box)) return resolve(true);
+        const waited = Date.now() - started;
+        if (!restarted && waited > 4000 && window.turnstile && slot?.dataset.widgetId) {
+          restarted = true;
+          slot.classList.remove('is-error');
+          window.turnstile.reset(slot.dataset.widgetId);
+        }
+        if (waited > ms) return resolve(false);
+        setTimeout(tick, 200);
+      };
+      tick();
+    });
+  }
+
+  // When someone presses Send before the check is done, hold the form, show "Checking…",
+  // and send it automatically as soon as Cloudflare confirms. Runs before the form's own handler.
+  function holdUntilVerified(form, box) {
+    form.addEventListener('submit', async event => {
+      if (form.dataset.tsPass) { delete form.dataset.tsPass; return; }
+      if (turnstileToken(box)) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (form.dataset.tsWaiting) return;
+      form.dataset.tsWaiting = '1';
+      const button = form.querySelector('button[type="submit"]');
+      const label = button ? button.innerHTML : '';
+      if (button) { button.disabled = true; button.textContent = 'Checking…'; }
+      const ok = await waitForToken(box);
+      delete form.dataset.tsWaiting;
+      if (button) { button.disabled = false; button.innerHTML = label; }
+      if (!ok) form.dataset.tsPass = '1'; // let the form show the "tick the box" message
+      form.requestSubmit();
+    }, true);
+  }
+
   async function refresh(form) {
     const box = form.querySelector('.human-check');
     if (!box) return;
@@ -85,15 +127,15 @@ window.SainandForms = (() => {
     }
   }
 
-  function attach(form, { compact = false, purpose = 'enquiry' } = {}) {
+  function attach(form, { compact = false, purpose = 'enquiry', noPuzzle = false } = {}) {
     if (!form || form.querySelector('.human-check')) return;
     const box = document.createElement('div');
-    box.className = `human-check${compact ? ' is-compact' : ''}`;
-    const notice = compact ? NOTICE.compact() : (NOTICE[purpose] || NOTICE.enquiry)();
+    box.className = `human-check${compact ? ' is-compact' : ''}${noPuzzle ? ' no-puzzle' : ''}`;
+    if (noPuzzle) box.dataset.noPuzzle = '1';
+    // One short consent line with the Privacy Policy link (the full details live in the policy).
     box.innerHTML = `
-      <p class="hc-notice">${notice}</p>
       <label class="hc-consent"><input type="checkbox" name="consent" value="true"><span>${CONSENT[purpose] || CONSENT.enquiry}</span></label>
-      ${siteKey() ? '<div class="hc-turnstile"></div>' : `<div class="hc-puzzle">
+      ${siteKey() && !noPuzzle ? '<div class="hc-turnstile"></div>' : `<div class="hc-puzzle">
         <span class="hc-label">Quick check: <strong class="hc-question">…</strong></span>
         <input name="challengeAnswer" inputmode="numeric" pattern="[0-9]*" maxlength="2" autocomplete="off" aria-label="Answer to the quick check" placeholder="?">
         <button type="button" class="hc-refresh" aria-label="Show a different question" title="Different question">↻</button>
@@ -102,22 +144,37 @@ window.SainandForms = (() => {
       <div class="hc-trap" aria-hidden="true"><label>Leave this empty<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>`;
     const submit = form.querySelector('button[type="submit"], button:not([type])');
     form.insertBefore(box, submit || null);
-    if (siteKey()) { renderTurnstile(box); return; }
+    if (siteKey() && !noPuzzle) { renderTurnstile(box); holdUntilVerified(form, box); return; }
     box.querySelector('.hc-refresh').addEventListener('click', () => refresh(form));
     refresh(form);
   }
 
   /** Returns an error message, or '' when the form is ready to send. */
+  const CONSENT_MISSING = 'consent-missing';
   function problem(form) {
     const box = form.querySelector('.human-check');
     if (!box) return '';
-    if (!box.querySelector('input[name="consent"]').checked) return 'Please tick the box to agree to be contacted.';
+    const consent = box.querySelector('input[name="consent"]');
+    if (!consent.checked) {
+      // No extra message: the tick-box line already says what it is. Just point the person to it.
+      const row = consent.closest('.hc-consent');
+      row.classList.remove('is-missing'); void row.offsetWidth; row.classList.add('is-missing');
+      row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      consent.focus({ preventScroll: true });
+      consent.addEventListener('change', () => row.classList.remove('is-missing'), { once: true });
+      return CONSENT_MISSING;
+    }
     const slot = box.querySelector('.hc-turnstile');
     if (slot) {
-      if (slot.classList.contains('is-error') && !turnstileToken(box)) return 'The security check could not load. Please refresh the page and try again.';
-      if (!turnstileToken(box)) return 'Please wait a moment for the security check to finish, then send again.';
+      if (slot.classList.contains('is-error') && !turnstileToken(box)) return 'The security check could not load. Please check your internet connection, refresh the page and try again.';
+      if (!turnstileToken(box)) {
+        return slot.getBoundingClientRect().height > 10
+          ? 'Please tick “Verify you are human” above, then send again.'
+          : 'The security check is taking longer than usual. Please check your internet connection and send again.';
+      }
       return '';
     }
+    if (box.dataset.noPuzzle) return '';
     if (!box.querySelector('input[name="challengeAnswer"]').value.trim()) return 'Please answer the quick check (the small sum).';
     return '';
   }
@@ -137,6 +194,7 @@ window.SainandForms = (() => {
       challengeToken: box.querySelector('input[name="challengeToken"]').value,
       challengeAnswer: box.querySelector('input[name="challengeAnswer"]').value.trim(),
       website: box.querySelector('input[name="website"]').value,
+      ...(box.dataset.noPuzzle ? { chatFlow: true } : {}),
     };
   }
 
@@ -146,7 +204,7 @@ window.SainandForms = (() => {
     refresh(form);
   }
 
-  return { attach, refresh, problem, values, reset };
+  return { attach, refresh, problem, values, reset, CONSENT_MISSING };
 })();
 
 // ========== INTERSECTION OBSERVER FOR SCROLL REVEAL ==========
@@ -272,7 +330,8 @@ function initBotPopup() {
 
   // Close popup when clicking outside (but not from user-triggered open)
   document.addEventListener('click', (e) => {
-    if (!e.target.closest('.bot-widget') && popupOpenedByUser) {
+    // A button inside the chat may remove itself when clicked; that is not a click outside the chat.
+    if (e.target.isConnected && !e.target.closest('.bot-widget') && popupOpenedByUser) {
       botPopup.classList.remove('show');
     }
   });
@@ -285,6 +344,7 @@ function initBotPopup() {
     addChatMessage(content, 'user');
     messages.push({ role: 'user', content });
     chatInput.value = '';
+    if (lead && lead.step !== 'done') { handleLeadAnswer(content); return; }
     chatInput.disabled = true;
     const loadingMessage = addChatMessage('Sai is thinking...', 'sai', true);
 
@@ -297,22 +357,39 @@ function initBotPopup() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Chat request failed');
 
-      const alreadySent = Boolean(messagesEl.querySelector('.bot-enquiry-form.is-sent'));
+      const alreadySent = Boolean(messagesEl.querySelector('.bot-enquiry-form.is-sent')) || lead?.step === 'done';
       const answer = result.showEnquiryForm && alreadySent
         ? 'We already have your details 😊 Our team will call you shortly. Anything else I can help you with meanwhile?'
         : result.answer;
-      loadingMessage.textContent = answer;
-      messages.push({ role: 'assistant', content: answer });
-      if (result.showEnquiryForm && !alreadySent) showChatEnquiryForm();
+      if (result.showEnquiryForm && !alreadySent) {
+        // One message only: Sai's own "Happy to arrange a call…" line replaces the AI reply.
+        loadingMessage.remove();
+        showChatEnquiryForm();
+      } else {
+        loadingMessage.textContent = answer;
+        messages.push({ role: 'assistant', content: answer });
+        revealMessage(loadingMessage);
+      }
     } catch (error) {
-      loadingMessage.textContent = 'Sorry, I could not connect right now. Leave your details below and our team will call you.';
+      loadingMessage.textContent = 'Sorry, I could not connect right now. Our team can call you instead.';
       showChatEnquiryForm();
     } finally {
-      loadingMessage.classList.remove('bot-message-loading');
+      loadingMessage?.classList.remove('bot-message-loading');
       chatInput.disabled = false;
       chatInput.focus();
     }
   });
+
+  // Bring a Sai reply into view once its text is in. A long reply is shown from its
+  // first line (so it can be read top to bottom); a short one scrolls to the bottom.
+  function revealMessage(el) {
+    requestAnimationFrame(() => {
+      const boxTop = messagesEl.getBoundingClientRect().top;
+      const start = el.getBoundingClientRect().top - boxTop + messagesEl.scrollTop - 8;
+      const end = messagesEl.scrollHeight - messagesEl.clientHeight;
+      messagesEl.scrollTo({ top: Math.max(0, Math.min(start, end)), behavior: 'smooth' });
+    });
+  }
 
   function addChatMessage(content, sender, loading = false) {
     const message = document.createElement('div');
@@ -327,56 +404,170 @@ function initBotPopup() {
     return String(value).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   }
 
-  function showChatEnquiryForm() {
-    // Only one call-back form per chat; if it's already there, move it under the newest reply.
-    const existing = messagesEl.querySelector('.bot-enquiry-form');
-    if (existing) {
-      if (!existing.classList.contains('is-sent')) messagesEl.appendChild(existing);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
+  // ---- Callback request as a short conversation: name → mobile → email → plan → confirm ----
+  let lead = null;
+  const leadPlans = () => [...(window.SAINAND_SITE?.plans || []).map(p => p.option), 'Not sure yet - Need more information'];
+  const firstNameOf = name => {
+    const first = String(name || '').trim().split(/\s+/)[0] || '';
+    return first ? first.charAt(0).toUpperCase() + first.slice(1).toLowerCase() : '';
+  };
+  const placeholder = chatInput ? chatInput.placeholder : '';
+
+  // A question bubble with a small "1 of 4" step label.
+  function saiAsk(text, stepNo) {
+    const msg = document.createElement('div');
+    msg.className = 'bot-message bot-message-sai bot-ask';
+    msg.innerHTML = `<span class="bot-ask-step">${stepNo} of 4</span><span class="bot-ask-q"></span>`;
+    msg.querySelector('.bot-ask-q').textContent = text;
+    messagesEl.appendChild(msg);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    messages.push({ role: 'assistant', content: text });
+    return msg;
+  }
+
+  function saiSays(text) {
+    const msg = addChatMessage(text, 'sai');
+    messages.push({ role: 'assistant', content: text });
+    return msg;
+  }
+
+  function askFor(step) {
+    lead.step = step;
+    chatInput.type = 'text';
+    chatInput.removeAttribute('inputmode');
+    chatInput.setAttribute('autocomplete', 'off');
+    if (step === 'name') {
+      chatInput.placeholder = 'Enter your name';
+      chatInput.setAttribute('autocomplete', 'name');
+    } else if (step === 'phone') {
+      saiAsk('Your contact number', 2);
+      chatInput.placeholder = 'Enter 10-digit number';
+      chatInput.setAttribute('inputmode', 'tel');
+      chatInput.setAttribute('autocomplete', 'tel');
+    } else if (step === 'email') {
+      saiAsk('Your email address', 3);
+      chatInput.placeholder = 'Enter email address';
+      chatInput.setAttribute('inputmode', 'email');
+      chatInput.setAttribute('autocomplete', 'email');
+    } else if (step === 'plan') {
+      saiAsk('Select your plan', 4);
+      chatInput.placeholder = 'Select a plan above';
+      showPlanChoices();
+    }
+    chatInput.focus();
+  }
+
+  function showPlanChoices() {
+    const wrap = document.createElement('div');
+    wrap.className = 'bot-choices';
+    leadPlans().forEach(option => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = option.startsWith('Not sure') ? 'Not sure yet' : option.replace(' Bhisi', '').replace(/\s*\((.+)\)/, ' · $1');
+      btn.addEventListener('click', () => {
+        if (!lead || lead.step !== 'plan') return;
+        addChatMessage(btn.textContent, 'user');
+        messages.push({ role: 'user', content: btn.textContent });
+        choosePlan(option);
+      });
+      wrap.appendChild(btn);
+    });
+    messagesEl.appendChild(wrap);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function choosePlan(option) {
+    lead.plan = option;
+    messagesEl.querySelectorAll('.bot-choices').forEach(el => el.remove());
+    lead.step = 'confirm';
+    chatInput.placeholder = placeholder;
+    chatInput.removeAttribute('inputmode');
+    showConfirmCard();
+  }
+
+  function handleLeadAnswer(text) {
+    const value = text.trim();
+    if (/^(cancel|stop|no thanks|not now)$/i.test(value)) {
+      lead = null;
+      messagesEl.querySelectorAll('.bot-choices, .bot-enquiry-form:not(.is-sent)').forEach(el => el.remove());
+      chatInput.placeholder = placeholder;
+      saiSays('No problem! Ask me anything else, or say "call me" whenever you want a call from our team.');
       return;
     }
+    if (lead.step === 'name') {
+      if (value.length < 2 || /\d{3,}/.test(value)) return saiSays('Please enter a valid name.');
+      lead.name = value.slice(0, 120);
+      return askFor('phone');
+    }
+    if (lead.step === 'phone') {
+      const digits = value.replace(/\D/g, '').replace(/^(91|0)(?=\d{10}$)/, '');
+      if (!/^[6-9]\d{9}$/.test(digits)) return saiSays('Please enter a valid 10-digit mobile number.');
+      lead.phone = digits;
+      return askFor('email');
+    }
+    if (lead.step === 'email') {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return saiSays('Please enter a valid email address.');
+      lead.email = value.slice(0, 254);
+      return askFor('plan');
+    }
+    if (lead.step === 'plan') {
+      const options = leadPlans();
+      const said = value.toLowerCase().replace(/\s+/g, '');
+      const match = options.find(o => {
+        const amount = o.toLowerCase().replace(/₹|\s+/g, '').match(/^\d+(lakh|crore)/);
+        return amount && said.includes(amount[0]);
+      }) || (/not\s*sure|don.?t\s*know|any/i.test(value) ? options[options.length - 1] : null);
+      if (!match) return saiSays('Please select a plan from the options above.');
+      return choosePlan(match);
+    }
+    if (lead.step === 'confirm') return saiSays('Please confirm your details below.');
+  }
 
+  function showConfirmCard() {
     const form = document.createElement('form');
-    form.className = 'bot-enquiry-form';
+    form.className = 'bot-enquiry-form bot-confirm';
+    const planText = lead.plan.startsWith('Not sure') ? 'Not decided yet' : lead.plan;
     form.innerHTML = `
-      <strong>Get a free call from our team</strong>
-      <span>We’ll explain the plans and answer all your questions.</span>
-      <label>Name<input name="name" type="text" maxlength="120" placeholder="Your full name" required></label>
-      <label>Email<input name="email" type="email" maxlength="254" placeholder="your.email@example.com" required></label>
-      <label>Phone number<input name="phone" type="tel" maxlength="40" placeholder="10-digit mobile number" required></label>
-      <label>Interested plan
-        <select name="plan" required>
-          <option value="">Select a Bhisi plan</option>
-          ${(window.SAINAND_SITE?.plans || []).map(p => `<option>${p.option}</option>`).join('')}
-          <option>Not sure yet - Need more information</option>
-        </select>
-      </label>
-      <button type="submit">Request a callback</button>
-      <div class="bot-enquiry-status" role="status" aria-live="polite"></div>
-    `;
-    window.SainandForms.attach(form, { compact: true });
+      <strong>Confirm your details</strong>
+      <dl class="bot-summary">
+        <div><dt>Name</dt><dd>${escapeHtml(lead.name)}</dd></div>
+        <div><dt>Mobile</dt><dd>${escapeHtml(lead.phone)}</dd></div>
+        <div><dt>Email</dt><dd>${escapeHtml(lead.email)}</dd></div>
+        <div><dt>Plan</dt><dd>${escapeHtml(planText)}</dd></div>
+      </dl>
+      <button type="submit">Request a call</button>
+      <button type="button" class="bot-edit">Edit details</button>
+      <div class="bot-enquiry-status" role="status" aria-live="polite"></div>`;
+    window.SainandForms.attach(form, { compact: true, noPuzzle: true });
+    // put the tick box and quick check above the buttons
+    const check = form.querySelector('.human-check');
+    if (check) form.insertBefore(check, form.querySelector('button[type="submit"]'));
+
+    form.querySelector('.bot-edit').addEventListener('click', () => {
+      form.remove();
+      lead = { step: 'name' };
+      saiAsk('Your name', 1);
+      askFor('name');
+    });
 
     form.addEventListener('submit', async event => {
       event.preventDefault();
       const submitButton = form.querySelector('button[type="submit"]');
       const status = form.querySelector('.bot-enquiry-status');
-      const formData = new FormData(form);
       const checkProblem = window.SainandForms.problem(form);
-      if (checkProblem) { status.textContent = checkProblem; return; }
+      if (checkProblem) { status.textContent = checkProblem === window.SainandForms.CONSENT_MISSING ? '' : checkProblem; return; }
       submitButton.disabled = true;
-      submitButton.classList.add('is-sending');
       submitButton.textContent = 'Sending...';
       status.textContent = '';
-
       try {
         const response = await fetch('/api/enquiries', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            name: formData.get('name'),
-            email: formData.get('email'),
-            phone: formData.get('phone'),
-            plan: formData.get('plan'),
+            name: lead.name,
+            email: lead.email,
+            phone: lead.phone,
+            plan: lead.plan,
             message: 'Callback requested through Sai chat.',
             chatTranscript: messages,
             ...window.SainandForms.values(form),
@@ -387,30 +578,38 @@ function initBotPopup() {
           if (result.refreshChallenge) window.SainandForms.refresh(form);
           throw new Error(result.error || 'Unable to save your details.');
         }
-        // Clear the form and leave just a short thank-you in its place.
-        const firstName = String(formData.get('name') || '').trim().split(/\s+/)[0];
-        form.reset();
+        const firstName = firstNameOf(lead.name);
+        lead.step = 'done';
+        // Replace the details card with a short thank-you message in the chat.
         form.classList.add('is-sent');
         form.innerHTML = `
           <div class="bot-enquiry-done">
             <span class="bot-enquiry-tick" aria-hidden="true">✓</span>
             <strong>Thank you${firstName ? ', ' + escapeHtml(firstName) : ''}!</strong>
             <span>${result.duplicate
-              ? 'We already have your details. Our team will call you soon.'
-              : 'Our team will call you soon.'}</span>
+              ? 'We already have your request. Our team will call you soon.'
+              : 'Your request is received. Our team will call you soon.'}</span>
           </div>`;
-        messagesEl.scrollTop = messagesEl.scrollHeight;
+        chatInput.placeholder = placeholder;
+        requestAnimationFrame(() => { messagesEl.scrollTop = messagesEl.scrollHeight; });
       } catch (error) {
         status.textContent = error.message || `Unable to save your details. Please call ${window.SAINAND_SITE?.phone || 'our office'}.`;
         submitButton.disabled = false;
-        submitButton.classList.remove('is-sending');
-        submitButton.textContent = 'Request a callback';
+        submitButton.textContent = 'Request a call';
+        requestAnimationFrame(() => { messagesEl.scrollTop = messagesEl.scrollHeight; });
       }
     });
 
     messagesEl.appendChild(form);
     messagesEl.scrollTop = messagesEl.scrollHeight;
-    form.querySelector('input')?.focus();
+  }
+
+  function showChatEnquiryForm() {
+    if (lead && lead.step !== 'done') return; // already collecting details
+    lead = { step: 'name' };
+    saiSays('Happy to arrange a call from our team. Please share a few details.');
+    saiAsk('Your name', 1);
+    askFor('name');
   }
 
   // Give visitors a short welcome without forcing the full chat panel open.
@@ -510,6 +709,7 @@ function bindEnquiryForm(form, fields) {
     }
 
     const checkProblem = window.SainandForms.problem(form);
+    if (checkProblem === window.SainandForms.CONSENT_MISSING) { note.classList.remove('show'); return; }
     if (checkProblem) {
       note.textContent = checkProblem;
       note.classList.add('show');
@@ -626,10 +826,90 @@ function initEnquiryModal() {
     start.hidden = false;
   }
 
+  // "View Details" on a plan card: same pop-up, with the plan's details on top and no plan or message fields.
+  const head = document.getElementById('enquiryModalHead');
+  const detail = document.getElementById('planDetail');
+  const planGroup = document.getElementById('modalPlanGroup');
+  const messageGroup = document.getElementById('modalMessageGroup');
+  const submitLabel = form.querySelector('.enquiry-modal-submit');
+  const defaultSubmit = submitLabel ? submitLabel.textContent : '';
+  const rupees = n => `₹${Math.round(n).toLocaleString('en-IN')}`;
+
+  const formHead = document.getElementById('planFormHead');
+  // A short line about what each plan size is good for.
+  const planGoal = amount => amount <= 500000
+    ? 'a vehicle, education or a family function'
+    : amount <= 1000000 ? 'a wedding, home upgrade or your business'
+      : amount <= 2500000 ? 'a home down payment or business growth'
+        : 'property, a big business move or long-term plans';
+
+  // Plan pop-up has two steps: "detail" (the plan, with an Enquire Now button) and "form" (the short form).
+  function setPlanStep(step) {
+    const isDetail = step === 'detail';
+    if (detail) detail.hidden = !isDetail;
+    if (formHead) formHead.hidden = isDetail;
+    form.hidden = isDetail;
+    dialog.scrollTop = 0;
+  }
+
+  function setPlanMode(plan) {
+    const on = Boolean(plan);
+    if (head) head.hidden = on;
+    if (planGroup) planGroup.hidden = on;
+    if (messageGroup) messageGroup.hidden = on;
+    if (submitLabel) submitLabel.textContent = on ? 'Send my enquiry' : defaultSubmit;
+    dialog.setAttribute('aria-labelledby', on ? 'planDetailTitle' : 'enquiryModalTitle');
+    dialog.classList.toggle('is-plan', on);
+    if (!on) {
+      if (detail) detail.hidden = true;
+      if (formHead) formHead.hidden = true;
+      form.hidden = false;
+      return;
+    }
+    document.getElementById('planDetailTitle').textContent = `${plan.label} Bhisi`;
+    document.getElementById('planFormTitle').textContent = `Enquire about the ${plan.label} Bhisi`;
+    document.getElementById('planDetailTag').hidden = !plan.featured;
+    document.getElementById('planDetailLead').textContent =
+      `Save monthly, take your Bhisi when you need it most.`;
+    document.getElementById('planDetailAmount').textContent = plan.label;
+    document.getElementById('planDetailMonths').textContent = `${plan.months} months`;
+    document.getElementById('planDetailMembers').textContent = `${plan.members}`;
+    document.getElementById('planDetailInstalment').textContent = rupees(plan.instalment);
+    setPlanStep('detail');
+  }
+
+  document.getElementById('planDetailCta')?.addEventListener('click', () => {
+    setPlanStep('form');
+    window.setTimeout(() => document.getElementById('modalName')?.focus(), 60);
+  });
+  document.getElementById('planFormBack')?.addEventListener('click', () => {
+    setPlanStep('detail');
+    document.getElementById('planDetailCta')?.focus();
+  });
+
+
   document.getElementById('modalThanksClose')?.addEventListener('click', () => closeModal());
+
+  // Stop the page behind the pop-up from scrolling (also on iPhone), and put it back where it was on close.
+  let lockedY = 0;
+  function lockPage() {
+    lockedY = window.scrollY;
+    const root = document.documentElement;
+    root.style.scrollBehavior = 'auto';
+    root.style.overflow = 'hidden';
+    Object.assign(document.body.style, { position: 'fixed', top: `-${lockedY}px`, left: '0', right: '0', width: '100%' });
+  }
+  function unlockPage() {
+    const root = document.documentElement;
+    root.style.overflow = '';
+    Object.assign(document.body.style, { position: '', top: '', left: '', right: '', width: '' });
+    window.scrollTo(0, lockedY);
+    root.style.scrollBehavior = '';
+  }
 
   function closeModal() {
     if (!modal.classList.contains('is-open')) return;
+    unlockPage();
     modal.classList.remove('is-open');
     modal.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('modal-open');
@@ -638,7 +918,7 @@ function initEnquiryModal() {
       modal.hidden = true;
       resetToForm();
     }, 220);
-    lastFocusedElement?.focus();
+    lastFocusedElement?.focus({ preventScroll: true });
   }
 
   function openModal(trigger) {
@@ -649,14 +929,20 @@ function initEnquiryModal() {
       planInput.value = selectedPlan;
     }
 
+    const plans = (window.SAINAND_SITE && window.SAINAND_SITE.plans) || [];
+    const plan = trigger.classList.contains('plan-details-btn') ? plans[Number(trigger.dataset.planIndex)] : null;
+    setPlanMode(plan);
+    dialog.scrollTop = 0;
+
     modal.hidden = false;
     modal.setAttribute('aria-hidden', 'false');
+    if (!document.body.classList.contains('modal-open')) lockPage();
     document.body.classList.add('modal-open');
     requestAnimationFrame(() => modal.classList.add('is-open'));
-    window.setTimeout(() => document.getElementById('modalName')?.focus(), 80);
+    window.setTimeout(() => (plan ? document.getElementById('enquiryModalClose') : document.getElementById('modalName'))?.focus(), 80);
   }
 
-  document.querySelectorAll('.enquiry-trigger').forEach(trigger => {
+  document.querySelectorAll('.enquiry-trigger, .plan-details-btn').forEach(trigger => {
     trigger.addEventListener('click', event => {
       event.preventDefault();
       openModal(trigger);
@@ -1014,7 +1300,7 @@ function initPlans() {
 function initSmoothScroll() {
   document.querySelectorAll('a[href^="#"], a[href^="/#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
-      if (this.classList.contains('enquiry-trigger')) return;
+      if (this.classList.contains('enquiry-trigger') || this.classList.contains('plan-details-btn')) return;
       let href = this.getAttribute('href');
       if (href.startsWith('/#')) {
         if (location.pathname !== '/') return;

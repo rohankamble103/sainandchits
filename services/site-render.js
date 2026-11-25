@@ -6,6 +6,7 @@
  */
 const { SUPPORT_TOPICS } = require('./support-topics');
 const path = require('path');
+const fs = require('fs');
 
 const CONFIG_PATH = path.join(__dirname, '..', 'config', 'site.js');
 function loadSite() {
@@ -33,9 +34,12 @@ function planNumbers(plan, site) {
   // Example from month 3: the Bhisi is taken at 70% of the plan amount.
   const exampleTaken = Math.round(plan.amount * 0.7);
   const examplePay = Math.round(exampleTaken / group) + commission;
+  const members = Number(plan.members || months);
   return {
     amount: plan.amount,
     label: lakhLabel(plan.amount),
+    members,
+    instalment: Math.round(plan.amount / members), // full monthly instalment, before any auction discount
     months,
     group,
     share: Math.round(share),
@@ -149,7 +153,7 @@ function footer(site) {
       </div>
     </div>
     <div class="footer-bottom">
-      <span>© ${year} ${esc(site.company)}. All rights reserved.</span>
+      <span>© ${year} ${esc(String(site.company).replace(/\.$/, ''))}. All rights reserved.</span>
       <span>Please confirm plan details with our team before joining.</span>
       <a href="/admin" class="staff-login" rel="nofollow">Staff login</a>
     </div>
@@ -173,15 +177,23 @@ function stats(site) {
 }
 
 function plans(site) {
-  return site.plans.map(plan => {
+  // A short line under each plan card, chosen by plan amount.
+  const PLAN_LINES = {
+    500000: 'Small savings today, a big smile tomorrow.',
+    1000000: 'Ready for something bigger? Start here.',
+    2500000: 'Big plans need steady steps.',
+    5000000: 'Big money, built together.',
+    10000000: 'Think big. Save together. Build a legacy.',
+  };
+  return site.plans.map((plan, index) => {
     const p = planNumbers(plan, site);
     return `<article class="plan-card${p.featured ? ' feat' : ''}">
-      ${p.featured ? '<div class="plan-tag">Popular</div>' : ''}
+      ${p.featured ? '<div class="plan-tag">Most popular</div>' : ''}
       <div class="amt">${p.label}</div>
-      <div class="sub">${p.months} months</div>
-      <p class="plan-after">Monthly amount explained on a free call</p>
+      <div class="sub">${p.months} months · ${p.members} members</div>
+      <p class="plan-after">${PLAN_LINES[plan.amount] || 'Save a little every month. Take the full amount when your dream calls.'}</p>
       <div class="plan-card-actions">
-        <a href="#contact" class="enquiry-trigger btn-plan-enquire" data-plan="${esc(p.option)}">Enquire</a>
+        <a href="#contact" class="plan-details-btn btn-plan-enquire" data-plan-index="${index}" data-plan="${esc(p.option)}" aria-haspopup="dialog">View Details</a>
       </div>
     </article>`;
   }).join('\n      ');
@@ -205,7 +217,14 @@ function team(site) {
 function banners(site) {
   const offered = new Set(site.plans.map(p => p.amount));
   const list = (site.banners || []).filter(b => !b.plan || offered.has(b.plan));
-  return list.map((b, i) => `<div class="slide"><img src="${esc(b.image)}-full.webp" alt="${esc(b.alt)}" width="1264" height="848" decoding="async" ${i ? 'loading="lazy"' : 'fetchpriority="high"'}></div>`).join('\n      ');
+  // A phone version is used automatically when "<name>-mobile.webp" sits next to the desktop file.
+  const hasMobile = b => fs.existsSync(path.join(__dirname, '..', b.image.replace(/^\//, '') + '-mobile.webp'));
+  return list.map((b, i) => {
+    const img = `<img src="${esc(b.image)}-full.webp" alt="${esc(b.alt)}" width="1264" height="848" decoding="async" ${i ? 'loading="lazy"' : 'fetchpriority="high"'}>`;
+    // Until a banner has its own phone version, phones show it on a soft blurred copy of itself.
+    if (!hasMobile(b)) return `<div class="slide" style="--slide-bg:url('${esc(b.image)}-full.webp')">${img}</div>`;
+    return `<div class="slide has-mobile"><picture><source media="(max-width: 640px)" srcset="${esc(b.image)}-mobile.webp" width="1080" height="1080">${img}</picture></div>`;
+  }).join('\n      ');
 }
 
 /** "Getting started" timeline: the 4 steps on a glowing track (steps only, no amounts). */
@@ -242,6 +261,38 @@ function howSteps() {
         <span class="jr-finish">✓ Bhisi in hand</span>
       </div>
     </div>`;
+}
+
+// ---------- Home page v2 (preview at /v2) ----------
+const rupees = n => `₹${inr(n)}`;
+
+/** Plan comparison rows: amount, length, months 1–2 instalment, and the most anyone pays later. */
+function v2Plans(site) {
+  return site.plans.map(plan => {
+    const p = planNumbers(plan, site);
+    return `<tr${p.featured ? ' class="is-popular"' : ''}>
+            <th scope="row"><span class="v2-amt">${esc(p.label)}</span>${p.featured ? '<span class="v2-tag">Most chosen</span>' : ''}</th>
+            <td data-label="Length">${p.months} months</td>
+            <td data-label="Group">${p.months} members</td>
+            <td data-label="Months 1–2"><span class="v2-num">${rupees(p.fixed)}</span><small>a month</small></td>
+            <td data-label="From month 3"><span class="v2-num">Up to ${rupees(p.fixed)}</span><small>less when bids are low</small></td>
+            <td class="v2-act"><a href="#contact" class="v2-link enquiry-trigger" data-plan="${esc(p.option)}">Ask about ${esc(p.label)}</a></td>
+          </tr>`;
+  }).join('\n          ');
+}
+
+/** Numbers for the worked example in the hero statement (the featured plan). */
+function v2Example(site) {
+  const plan = site.plans.find(x => x.featured) || site.plans[0];
+  const p = planNumbers(plan, site);
+  return `data-amount="${p.amount}" data-group="${p.group}" data-commission="${p.commission}" data-fixed="${p.fixed}"`;
+}
+
+function v2Team(site) {
+  return site.team.map(m => `<li class="v2-person">
+          <div class="v2-person-photo">${m.photo ? `<img src="${esc(m.photo)}" alt="" width="240" height="240" loading="lazy">` : `<span>${esc(initials(m.name))}</span>`}</div>
+          <h3>${esc(m.name)}</h3>${m.role ? `<p>${esc(m.role)}</p>` : ''}
+        </li>`).join('\n        ');
 }
 
 /** Live website address used in canonical links, link previews and the sitemap. */
@@ -295,7 +346,7 @@ function seo(html, { path = '/', title, description, image = '/images/og-image.j
 
 /** Public subset of the settings, for the plan calculator in the browser. */
 function clientConfig(site) {
-  // Only what the browser needs: plan names for the forms. No commission or instalment figures.
+  // Only what the browser needs: plan names and the full instalment for the plan pop-up.
   return {
     phone: site.phone,
     email: site.email,
@@ -303,7 +354,7 @@ function clientConfig(site) {
     ...(require('./humancheck').turnstileEnabled() ? { turnstileSiteKey: String(process.env.TURNSTILE_SITE_KEY).trim() } : {}),
     plans: site.plans.map(plan => {
       const p = planNumbers(plan, site);
-      return { amount: p.amount, label: p.label, months: p.months, featured: p.featured, option: p.option };
+      return { amount: p.amount, label: p.label, months: p.months, members: p.members, instalment: p.instalment, featured: p.featured, option: p.option };
     }),
   };
 }
@@ -328,6 +379,8 @@ function renderPage(html) {
     howSteps: () => howSteps(),
     supportTopics: () => ['<option value="">Select a topic</option>', ...SUPPORT_TOPICS.map(t => `<option value="${t.id}">${esc(t.label)}</option>`)].join(''),
     banners: () => banners(site),
+    v2Plans: () => v2Plans(site),
+    v2Team: () => v2Team(site),
     siteConfig: () => `<script>window.SAINAND_SITE = ${JSON.stringify(clientConfig(site)).replace(/</g, '\\u003c')};</script>`,
   };
   const words = {
@@ -352,6 +405,14 @@ function renderPage(html) {
     planCount: esc(site.plans.length),
     planRange: `${lakhLabel(Math.min(...site.plans.map(p => p.amount)))} to ${lakhLabel(Math.max(...site.plans.map(p => p.amount)))}`,
     year: String(new Date().getFullYear()),
+    v2Example: v2Example(site),
+    v2ExampleLabel: esc(lakhLabel((site.plans.find(x => x.featured) || site.plans[0]).amount)),
+    v2ExampleMonths: esc((site.plans.find(x => x.featured) || site.plans[0]).months),
+    v2ExampleFixed: rupees(planNumbers(site.plans.find(x => x.featured) || site.plans[0], site).fixed),
+    v2ExampleShare: rupees(planNumbers(site.plans.find(x => x.featured) || site.plans[0], site).share),
+    v2ExampleCommission: rupees(planNumbers(site.plans.find(x => x.featured) || site.plans[0], site).commission),
+    v2ExampleGroup: esc(planNumbers(site.plans.find(x => x.featured) || site.plans[0], site).group),
+    regNo: esc(site.registrationNo || ''),
   };
   return html
     .replace(/<!--@(\w+)([^>]*?)-->/g, (match, name, rest) => (blocks[name] ? blocks[name](attrs(rest)) : match))

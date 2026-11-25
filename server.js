@@ -771,6 +771,7 @@ app.get('/llms.txt', async (_request, response) => {
   const site = siteRender.loadSite();
   const base = siteRender.siteBaseUrl();
   const { lakhLabel } = require('./services/structured-data');
+  const inr = n => Math.round(n).toLocaleString('en-IN');
   let faqs = defaultFaqs;
   try {
     faqs = (await pool.query('SELECT question, answer FROM site_faqs WHERE is_published = TRUE ORDER BY sort_order ASC, id ASC')).rows;
@@ -793,8 +794,8 @@ app.get('/llms.txt', async (_request, response) => {
     `- Website: ${base}/`,
     '',
     '## Bhisi plans',
-    ...site.plans.map(plan => `- ${lakhLabel(plan.amount)} Bhisi, ${plan.months} months`),
-    'Exact monthly instalments depend on each month\'s bidding; the team explains them on a free call before anyone joins.',
+    ...site.plans.map(plan => `- ${lakhLabel(plan.amount)} Bhisi: ${plan.months} months, ${plan.members || plan.months} members, full monthly instalment ₹${inr(Math.round(plan.amount / (plan.members || plan.months)))}`),
+    'The full monthly instalment is the most a member pays in a month; from month 3 the actual amount depends on each month\'s auction.',
     '',
     '## Leadership',
     ...site.team.filter(person => person.name).map(person => `- ${person.name}${person.role ? `, ${person.role}` : ''}`),
@@ -1528,7 +1529,7 @@ function fallbackChatAnswer(messages) {
   const planList = site.plans.map(plan => siteRender.lakhLabel(plan.amount)).join(', ');
   const userCount = messages.filter(message => message.role === 'user').length;
   if (shouldOfferEnquiry(messages)) {
-    return 'Wonderful! 😊 Please fill in your details below and our team will call you shortly.';
+    return 'Wonderful! 😊 Our team will be happy to call you.';
   }
   if (/^(hi|hii+|hello|hey|namaste|namaskar|good (morning|afternoon|evening))\b/.test(question)) {
     return /how are you/.test(question)
@@ -1932,7 +1933,7 @@ How to talk:
 - Answer general questions simply and honestly. You are not a calculator or a rule book.
 - Do NOT ask for their phone number, email or details, and do NOT tell them to fill a form — unless the instructions below say so.
 - Offer a call from our team only at a natural moment: when they ask for exact figures, specific rules or how to join, or when they show real interest. Offer it as a question, e.g. "Would you like our team to give you a call?" — and offer it at most once every few messages.
-${wantsCall ? '- The visitor wants a call now. Reply warmly in one sentence and tell them to fill in their details in the form below.' : userTurns >= 4 ? '- The chat has gone on a while; if it fits naturally, you may ask once whether they would like a call from our team.' : '- It is early in the chat: just talk and help. Do not offer a call unless they ask for exact figures or how to join.'}
+${wantsCall ? '- The visitor wants a call now. Reply warmly in one short sentence saying our team will be happy to call them. Do not ask for their details yourself; the chat will ask for them next.' : userTurns >= 4 ? '- The chat has gone on a while; if it fits naturally, you may ask once whether they would like a call from our team.' : '- It is early in the chat: just talk and help. Do not offer a call unless they ask for exact figures or how to join.'}
 
 Never share (say our team explains these personally):
 - Monthly instalment amounts, commission, dividends, discounts, bid limits, penalties, fees or any calculations.

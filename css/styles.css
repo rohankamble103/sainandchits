@@ -776,7 +776,7 @@ nav a.active {
 }
 
 .slide:hover img {
-  transform: scale(1.05);
+  transform: scale(1.02);
 }
 
 .slide-caption {
@@ -4675,3 +4675,243 @@ main .site-page-content .site-page-body > p:last-child { margin-bottom: 0; }
 .hc-turnstile { margin-top: 10px; min-height: 0; }
 .hc-turnstile:empty { margin-top: 0; }
 .hc-turnstile.is-error::after { content: 'Security check could not load. Please refresh the page.'; display: block; font-size: 12.5px; color: #b4181c; }
+
+
+/* ---- Phone banners: square frame when phone versions exist (e.g. bhisi-5-lakh-mobile.webp) ---- */
+.slide picture { display: block; width: 100%; height: 100%; }
+@media (max-width: 640px) {
+  .carousel:has(.slide.has-mobile) { aspect-ratio: 1 / 1; background: linear-gradient(180deg, #8d1117, #4a0910); }
+  .carousel:has(.slide.has-mobile) .slide:not(.has-mobile) img { position: relative; z-index: 1; object-fit: contain; }
+  .carousel:has(.slide.has-mobile) .slide:not(.has-mobile)::before { content: ''; position: absolute; inset: -40px; background: var(--slide-bg) center / cover no-repeat; filter: blur(24px) brightness(.65) saturate(1.2); }
+  .carousel:has(.slide.has-mobile) .slide:hover img { transform: none; }
+}
+
+/* Sai chat button: the Sainand logo as its face (red disc, white mark), calm shadow, no pulsing blue glow */
+.bot-avatar { animation: none; background: var(--red); border: 3px solid #fff; box-shadow: 0 6px 18px rgba(138, 18, 21, .28); transition: transform .2s ease, box-shadow .2s ease; }
+.bot-avatar .bot-icon, .bot-avatar:hover .bot-icon { box-shadow: none; }
+.bot-avatar:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(138, 18, 21, .34); }
+.bot-avatar:focus-visible { outline: 3px solid var(--red); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .bot-avatar, .bot-avatar:hover { transition: none; transform: none; } }
+
+/* "Most popular" label: one line, sits on the card's top edge without covering the amount */
+.plan-tag { white-space: nowrap; line-height: 1; padding: 6px 14px; font-size: 11px; }
+
+/* Plan cards: duration, members and full monthly instalment */
+.plan-card .plan-facts { margin: 14px 0 0; display: grid; gap: 8px; text-align: left; }
+.plan-card .plan-facts > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-bottom: 8px; border-bottom: 1px dashed var(--line, #eadfdd); }
+.plan-card .plan-facts dt { font-size: 13.5px; color: var(--ink-soft, #6b5f5d); font-weight: 500; }
+.plan-card .plan-facts dd { margin: 0; font-weight: 600; color: var(--ink, #241615); font-size: 15px; white-space: nowrap; }
+.plan-card .plan-facts .plan-pay { border-bottom: 0; padding-bottom: 0; }
+.plan-card .plan-facts .plan-pay dd { font-family: 'Merriweather', serif; font-size: 19px; color: var(--red, #a3161b); }
+.plan-card .plan-after { margin-top: 10px; font-size: 12.5px; line-height: 1.5; }
+.plans-disclaimer strong { font-weight: 700; }
+
+/* ---------- Plan details pop-up ("View Details" on a plan card) ---------- */
+.enquiry-modal-head[hidden], .plan-detail[hidden], .pd-formhead[hidden], #modalPlanGroup[hidden], #modalMessageGroup[hidden], #modalEnquiryForm[hidden] { display: none !important; }
+.enquiry-modal-dialog.is-plan { padding: 0 !important; overflow-x: hidden; }
+.enquiry-modal-dialog.is-plan .enquiry-modal-close { background: rgba(255,255,255,.16); color: #fff; border-color: rgba(255,255,255,.3); z-index: 2; }
+.enquiry-modal-dialog.is-plan .enquiry-modal-close:hover { background: rgba(255,255,255,.28); }
+.enquiry-modal-dialog.is-plan:has(.plan-detail[hidden]) .enquiry-modal-close { background: #f6f1f0; color: var(--ink, #241615); border-color: #eadfdd; }
+.enquiry-modal-dialog.is-plan #modalEnquiryForm, .enquiry-modal-dialog.is-plan .enquiry-thanks { padding: 0 32px 30px; }
+.enquiry-modal-dialog.is-plan .enquiry-thanks { padding-top: 34px; }
+
+/* step 1: the plan (compact, fits one screen) */
+.pd-hero { position: relative; padding: 24px 28px 46px; color: #fff; background:
+  radial-gradient(380px 200px at 100% 0%, rgba(255,214,150,.22), transparent 70%),
+  linear-gradient(135deg, #b5181e 0%, #8e1116 55%, #6d0c10 100%); }
+.pd-hero::after { content: ''; position: absolute; right: -50px; bottom: -70px; width: 200px; height: 200px; border-radius: 50%; border: 26px solid rgba(255,255,255,.06); pointer-events: none; }
+.pd-tag { display: inline-block; margin: 0 8px 6px 0; padding: 4px 10px; border-radius: 999px; background: #fff3d6; color: #8a5a00; font-size: 11.5px; font-weight: 700; vertical-align: middle; }
+.pd-kicker { display: inline-block; margin: 0 0 6px; font-size: 12.5px; font-weight: 600; color: rgba(255,255,255,.78); vertical-align: middle; }
+.enquiry-modal-dialog .pd-title { margin: 0; padding-right: 40px; font-family: 'Merriweather', serif; font-size: 28px; line-height: 1.15; color: #fff; }
+.pd-lead { position: relative; z-index: 1; margin: 8px 0 0; font-size: 14.5px; line-height: 1.5; color: rgba(255,255,255,.9); max-width: 48ch; }
+.pd-body { padding: 0 28px 22px; }
+.pd-card { position: relative; z-index: 1; margin-top: -30px; background: #fff; border-radius: 16px; box-shadow: 0 14px 34px -14px rgba(90,20,20,.35), 0 0 0 1px #f0e4e2; overflow: hidden; }
+.pd-pay { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; }
+.pd-pay-label { font-size: 13.5px; font-weight: 600; color: var(--ink-soft, #6b5f5d); }
+.pd-pay-amount { font-family: 'Merriweather', serif; font-size: 28px; font-weight: 900; color: var(--red, #a3161b); line-height: 1; }
+.pd-stats { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid #f1e7e5; background: #fcf9f8; }
+.pd-stats > div { padding: 9px 8px; text-align: center; }
+.pd-stats > div + div { border-left: 1px solid #f1e7e5; }
+.pd-stats dt { font-size: 11.5px; font-weight: 600; color: var(--ink-soft, #6b5f5d); }
+.pd-stats dd { margin: 2px 0 0; font-size: 15px; font-weight: 700; color: var(--ink, #241615); }
+.pd-benefits { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; }
+.pd-benefits li { position: relative; padding-left: 20px; font-size: 13px; font-weight: 600; color: var(--ink, #241615); }
+.pd-benefits li::before { content: ''; position: absolute; left: 0; top: 1px; width: 15px; height: 15px; border-radius: 50%; background: #e8f5ec url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 12.5l4 4 8-9' fill='none' stroke='%231f7a46' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 10px no-repeat; }
+.pd-note { margin: 14px 0 0; padding: 9px 12px; border-left: 3px solid #e3b23c; border-radius: 0 8px 8px 0; background: #fff9ea; color: #6b5212; font-size: 12.5px; line-height: 1.5; }
+.pd-note strong { color: #4d3a0a; }
+.enquiry-modal-dialog .pd-cta { margin-top: 14px; width: 100%; min-height: 50px; font-size: 16px; }
+.pd-call { margin: 8px 0 0; text-align: center; font-size: 13px; color: var(--ink-soft, #6b5f5d); }
+.pd-call a { color: var(--red, #a3161b); font-weight: 700; text-decoration: none; }
+
+/* step 2: the short form */
+.pd-formhead { padding: 30px 32px 6px; }
+.pd-back { padding: 0; margin: 0 0 14px; border: 0; background: none; color: var(--red, #a3161b); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.pd-back:hover { text-decoration: underline; }
+.enquiry-modal-dialog .pd-formhead h2 { margin: 0; padding-right: 40px; font-size: 24px; line-height: 1.25; }
+.pd-formhead p { margin: 8px 0 18px; font-size: 14.5px; color: var(--ink-soft, #6b5f5d); }
+
+@media (max-width: 520px) {
+  .pd-hero { padding: 20px 18px 42px; }
+  .enquiry-modal-dialog .pd-title { font-size: 24px; }
+  .pd-lead { font-size: 13.5px; }
+  .pd-body, .pd-formhead { padding-left: 18px; padding-right: 18px; }
+  .enquiry-modal-dialog.is-plan #modalEnquiryForm, .enquiry-modal-dialog.is-plan .enquiry-thanks { padding-left: 18px; padding-right: 18px; }
+  .pd-pay { padding: 12px 14px; }
+  .pd-pay-label { font-size: 12.5px; }
+  .pd-pay-amount { font-size: 24px; }
+  .pd-stats dd { font-size: 14px; }
+  .pd-benefits { gap: 6px 12px; }
+  .pd-benefits li { font-size: 12.5px; }
+}
+.hc-consent { font-size: 12.5px; color: #5d5453; align-items: center; }
+.hc-consent input { margin-top: 0; }
+.hc-consent a { font-weight: 600; }
+
+/* Unticked consent box on send: a gentle highlight instead of a separate message */
+.hc-consent.is-missing { border-radius: 8px; box-shadow: 0 0 0 2px #e05555; background: #fff2f2; padding: 6px 8px; animation: hcNudge .4s ease; }
+.hc-consent.is-missing input { outline: 2px solid #d33; outline-offset: 1px; }
+@keyframes hcNudge { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+@media (prefers-reduced-motion: reduce) { .hc-consent.is-missing { animation: none; } }
+/* Short screens (small phones): drop the extra line so the plan still fits on one screen */
+@media (max-height: 640px) {
+  .pd-kicker, .pd-lead { display: none; }
+  .pd-hero { padding-top: 18px; padding-bottom: 40px; }
+  .enquiry-modal-dialog .pd-title { font-size: 22px; }
+  .pd-tag { margin-bottom: 4px; }
+  .pd-stats > div { padding: 6px 4px; }
+  .pd-stats dt { font-size: 11px; }
+  .pd-stats dd { font-size: 13.5px; }
+  .pd-benefits { margin-top: 10px; }
+  .pd-note { margin-top: 10px; font-size: 12px; padding: 8px 10px; }
+  .enquiry-modal-dialog .pd-cta { margin-top: 10px; min-height: 46px; }
+  .pd-call { margin-top: 6px; }
+  .pd-body { padding-bottom: 16px; }
+}
+@media (max-height: 640px) {
+  .pd-call { display: none; }
+  .pd-pay { padding-top: 10px; padding-bottom: 10px; }
+  .pd-benefits li { font-size: 12px; }
+}
+
+/* Plan pop-up: smaller, calmer text; the short line stays visible on every screen */
+.pd-hero { padding: 20px 24px 40px; }
+.pd-kicker { display: none; }
+.enquiry-modal-dialog .pd-title { font-size: 23px; }
+.pd-lead { display: block !important; margin-top: 4px; font-size: 13.5px; line-height: 1.45; }
+.pd-body { padding: 0 24px 20px; }
+.pd-card { margin-top: -26px; }
+.pd-pay { padding: 11px 16px; }
+.pd-pay-label { font-size: 12.5px; }
+.pd-pay-amount { font-size: 23px; }
+.pd-stats > div { padding: 7px 6px; }
+.pd-stats dt { font-size: 11px; }
+.pd-stats dd { font-size: 13.5px; }
+.pd-benefits { margin-top: 12px; gap: 4px 12px; }
+.pd-benefits li { font-size: 12px; padding-left: 18px; }
+.pd-benefits li::before { width: 13px; height: 13px; top: 1px; background-size: 9px; }
+.pd-note { margin-top: 12px; padding: 8px 11px; font-size: 11.5px; }
+.enquiry-modal-dialog .pd-cta { margin-top: 12px; min-height: 44px; font-size: 14.5px; }
+.pd-call { margin-top: 7px; font-size: 12px; }
+.pd-tag { font-size: 11px; padding: 3px 9px; margin-bottom: 6px; }
+@media (max-height: 640px) {
+  .pd-hero { padding-top: 16px; padding-bottom: 36px; }
+  .enquiry-modal-dialog .pd-title { font-size: 21px; }
+  .pd-lead { font-size: 12.5px; }
+}
+@media (max-width: 360px) {
+  .pd-hero { padding-left: 16px; padding-right: 16px; }
+  .pd-body { padding-left: 16px; padding-right: 16px; }
+  .pd-pay { padding: 10px 12px; }
+  .pd-pay-label { font-size: 11.5px; }
+  .pd-pay-amount { font-size: 21px; }
+  .pd-stats dt { font-size: 10.5px; }
+  .pd-stats dd { font-size: 12.5px; }
+  .pd-benefits { gap: 3px 10px; }
+  .pd-benefits li { font-size: 11px; }
+}
+@media (max-width: 360px) { .pd-note { margin-top: 8px; } .pd-benefits { margin-top: 9px; } }
+
+/* Plan pop-up, form step: smaller, tidier text */
+.pd-formhead { padding: 22px 24px 4px; }
+.pd-back { font-size: 12.5px; margin-bottom: 10px; }
+.enquiry-modal-dialog .pd-formhead h2 { font-size: 19px; margin-bottom: 14px; }
+.enquiry-modal-dialog.is-plan #modalEnquiryForm { padding: 0 24px 22px; }
+.enquiry-modal-dialog.is-plan #modalEnquiryForm .form-row { gap: 12px; }
+.enquiry-modal-dialog.is-plan #modalEnquiryForm .form-group { margin-bottom: 12px; }
+.enquiry-modal-dialog.is-plan #modalEnquiryForm label { font-size: 11px; margin-bottom: 5px; }
+.enquiry-modal-dialog.is-plan #modalEnquiryForm input:not([type=checkbox]) { font-size: 14px; padding-top: 9px; padding-bottom: 9px; min-height: 40px; }
+.enquiry-modal-dialog.is-plan #modalEnquiryForm .hc-consent { font-size: 11.5px; }
+.enquiry-modal-dialog.is-plan #modalEnquiryForm .hc-label { font-size: 12.5px; }
+.enquiry-modal-dialog.is-plan #modalEnquiryForm .hc-puzzle input { height: 34px; font-size: 14px; }
+.enquiry-modal-dialog.is-plan .enquiry-modal-submit { min-height: 44px; font-size: 14.5px; }
+@media (max-width: 520px) {
+  .pd-formhead { padding-left: 18px; padding-right: 18px; }
+  .enquiry-modal-dialog.is-plan #modalEnquiryForm { padding-left: 18px; padding-right: 18px; }
+}
+@media (max-width: 520px) { .enquiry-modal-dialog.is-plan #modalEnquiryForm .form-group { margin-bottom: 10px; } }
+
+/* "Talk to our team" enquiry form: compact */
+.optional { font-weight: 400; color: var(--ink-soft, #8a7f7d); text-transform: none; letter-spacing: 0; }
+.contact-form { padding: 26px 28px 24px; }
+.contact-form h3 { font-size: 20px; margin-bottom: 16px; }
+#enquiryForm .form-row { gap: 12px; }
+#enquiryForm .form-group { margin-bottom: 12px; }
+#enquiryForm label { font-size: 11px; margin-bottom: 5px; }
+#enquiryForm input:not([type=checkbox]), #enquiryForm select { font-size: 14px; min-height: 40px; height: 40px; padding-top: 8px; padding-bottom: 8px; }
+#enquiryForm textarea { font-size: 14px; min-height: 64px; height: 64px; padding-top: 9px; padding-bottom: 9px; }
+#enquiryForm .hc-consent { font-size: 11.5px; }
+#enquiryForm .hc-puzzle { padding: 7px 10px; }
+#enquiryForm .hc-label { font-size: 12.5px; }
+#enquiryForm .hc-puzzle input { height: 32px; min-height: 32px; font-size: 14px; }
+#enquiryForm button[type=submit] { min-height: 44px; font-size: 14.5px; }
+@media (max-width: 520px) {
+  .contact-form { padding: 20px 18px; }
+  .contact-form h3 { font-size: 18px; }
+}
+
+/* Sai chat: plan choices and the confirm card */
+.bot-choices { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 6px; align-self: flex-start; max-width: 92%; }
+.bot-choices button { border: 1px solid #e3c9c7; background: #fff; color: var(--red, #a3161b); border-radius: 999px; padding: 6px 11px; font: 600 12.5px/1.2 inherit; font-family: inherit; cursor: pointer; transition: background .15s, color .15s; }
+.bot-choices button:hover, .bot-choices button:focus-visible { background: var(--red, #a3161b); color: #fff; outline: none; }
+.bot-confirm { gap: 8px; }
+.bot-confirm > strong { font-size: 13.5px; }
+.bot-summary { margin: 0; display: grid; gap: 3px; padding: 8px 10px; background: #faf6f5; border-radius: 10px; }
+.bot-summary > div { display: flex; gap: 8px; font-size: 12.5px; line-height: 1.4; }
+.bot-summary dt { flex: none; width: 50px; color: var(--ink-soft, #6b5f5d); }
+.bot-summary dd { margin: 0; font-weight: 600; color: var(--ink, #241615); word-break: break-word; }
+.bot-confirm .bot-edit { background: none !important; border: 0 !important; box-shadow: none !important; color: var(--red, #a3161b) !important; font-size: 12px !important; font-weight: 600; padding: 2px !important; min-height: 0 !important; text-decoration: underline; cursor: pointer; }
+
+/* Sai chat: question bubbles, plan list and confirm card (professional look) */
+.bot-message.bot-ask { display: flex; flex-direction: column; gap: 3px; padding: 10px 14px; border-left: 3px solid var(--red, #a3161b); }
+.bot-ask-step { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--red, #a3161b); opacity: .85; }
+.bot-ask-q { font-size: 14.5px; font-weight: 600; color: var(--ink, #241615); }
+.bot-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%; max-width: 100%; }
+.bot-choices button { border-radius: 10px; padding: 9px 8px; text-align: center; font-size: 12.5px; border-color: #ead7d5; background: #fff; color: var(--ink, #241615); }
+.bot-choices button:last-child { grid-column: 1 / -1; color: var(--ink-soft, #6b5f5d); }
+.bot-choices button:hover, .bot-choices button:focus-visible { background: #fbeeee; color: var(--red, #a3161b); border-color: var(--red, #a3161b); }
+.bot-confirm { border: 1px solid #eadfdd !important; border-radius: 14px !important; background: #fff !important; padding: 14px !important; box-shadow: 0 8px 22px -14px rgba(60,20,20,.35); }
+.bot-confirm > strong { font-size: 14px; color: var(--ink, #241615); }
+.bot-summary { background: #faf7f6; border: 1px solid #f1e8e6; }
+.bot-summary > div { padding: 2px 0; }
+.bot-summary dt { width: 58px; font-size: 12px; }
+.bot-confirm .human-check { margin: 2px 0 0; }
+.bot-confirm .hc-consent { font-size: 11.5px !important; }
+.bot-confirm button[type=submit] { border-radius: 10px !important; min-height: 42px; font-weight: 700; }
+.human-check.no-puzzle .hc-puzzle { display: none !important; }
+
+/* Sai chat: compact confirm card that fits inside the chat */
+.bot-confirm { padding: 10px 11px !important; gap: 6px !important; max-width: 100%; box-sizing: border-box; }
+.bot-confirm > strong { font-size: 12.5px !important; }
+.bot-confirm .bot-summary { padding: 6px 8px; gap: 1px; border-radius: 8px; }
+.bot-confirm .bot-summary > div { font-size: 11.5px; line-height: 1.35; padding: 1px 0; }
+.bot-confirm .bot-summary dt { width: 44px; font-size: 11px; }
+.bot-confirm .bot-summary dd { font-size: 11.5px; overflow-wrap: anywhere; }
+.bot-confirm .hc-consent { font-size: 10.5px !important; line-height: 1.4 !important; gap: 7px !important; }
+.bot-confirm .hc-consent input { width: 15px !important; height: 15px !important; }
+.bot-confirm button[type=submit] { min-height: 36px !important; font-size: 13px !important; padding: 8px 12px !important; }
+.bot-confirm .bot-edit { font-size: 11px !important; }
+.bot-confirm .bot-enquiry-status:empty { display: none; }
+.bot-confirm .bot-enquiry-status { font-size: 11.5px; color: #b42318; }
+.bot-enquiry-form.is-sent { padding: 10px 12px !important; }
+.bot-enquiry-form.is-sent .bot-enquiry-done strong { font-size: 13.5px; }
+.bot-enquiry-form.is-sent .bot-enquiry-done span:last-child { font-size: 12px; }

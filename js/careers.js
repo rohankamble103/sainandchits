@@ -201,6 +201,7 @@ function initCareerModal() {
     }
 
     const checkProblem = window.SainandForms ? window.SainandForms.problem(form) : '';
+    if (checkProblem && checkProblem === window.SainandForms.CONSENT_MISSING) { formNote.classList.remove('show'); return; }
     if (checkProblem) {
       formNote.textContent = checkProblem;
       formNote.classList.add('show');

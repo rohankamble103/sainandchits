@@ -42,7 +42,7 @@ function createHumanCheck(secret) {
   /** Cloudflare Turnstile check (used instead of the sum when keys are set). */
   async function verifyTurnstile(body, ip) {
     const token = String(body?.['cf-turnstile-response'] || body?.turnstileToken || '').trim();
-    if (!token) return { ok: false, error: 'Please wait a moment for the security check to finish, then send again.' };
+    if (!token) return { ok: false, error: 'The security check did not finish. Please send again.' };
     try {
       const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
         method: 'POST',
@@ -64,7 +64,7 @@ function createHumanCheck(secret) {
   /** Returns { ok: true } | { ok: false, bot: true } | { ok: false, error } */
   async function verify(body, ip) {
     if (String(body?.website || '').trim()) return { ok: false, bot: true };
-    if (turnstileEnabled()) return verifyTurnstile(body, ip);
+    if (turnstileEnabled() && body?.chatFlow !== true) return verifyTurnstile(body, ip);
     const [payload, signature] = String(body?.challengeToken || '').split('.');
     if (!payload || !signature || sign(payload) !== signature) {
       return { ok: false, error: 'Please answer the quick check question.' };
@@ -76,6 +76,9 @@ function createHumanCheck(secret) {
     if (usedNonces.has(data.n)) return { ok: false, error: 'Please answer the new quick check question.' };
     usedNonces.set(data.n, Date.now() + MAX_AGE_MS);
     if (age < MIN_FILL_MS) return { ok: false, bot: true };
+    // The Sai chat asks no sum (only used when Cloudflare Turnstile is off): the signed, single-use token
+    // plus the honeypot and minimum time are the check there.
+    if (body?.chatFlow === true) return { ok: true };
     const answer = String(body?.challengeAnswer ?? '').trim();
     if (!/^\d{1,2}$/.test(answer) || sign(`${data.n}:${Number(answer)}`) !== data.h) {
       return { ok: false, error: 'The quick check answer is not right. Please try the new question.' };
